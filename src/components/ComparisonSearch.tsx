@@ -21,7 +21,7 @@ function StatusIcon({ pass }: { pass: boolean }) {
   );
 }
 
-function RuleRow({
+export function RuleRow({
   row,
   personA,
   personB,
@@ -64,45 +64,89 @@ function RuleRow({
         <div className="border-t border-slate-700/40 px-3 py-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Person A side */}
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                {personA.full_name}
-              </p>
-              <div className="rounded-md bg-slate-950/40 px-2.5 py-2 text-xs text-slate-300">
-                {row.answerA.length > 0 ? (
-                  row.multi && row.answerA.length > 1 ? (
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      {row.answerA.map((v) => (
-                        <li key={v}>{v}</li>
-                      ))}
-                    </ul>
+            <div className="space-y-2">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {personA.full_name}'s Answer
+                </p>
+                <div className="rounded-md bg-slate-950/40 px-2.5 py-2 text-xs text-slate-300">
+                  {row.answerA.length > 0 ? (
+                    row.multi && row.answerA.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.answerA.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.answerA.join(', ')
+                    )
                   ) : (
-                    row.answerA.join(', ')
-                  )
-                ) : (
-                  <span className="text-slate-600">—</span>
-                )}
+                    <span className="text-slate-600">—</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-sky-400/70">
+                  What {personA.full_name} is Looking For
+                </p>
+                <div className="rounded-md bg-sky-950/20 px-2.5 py-2 text-xs text-slate-300 ring-1 ring-sky-500/10">
+                  {row.criteriaB.length > 0 ? (
+                    row.multi && row.criteriaB.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.criteriaB.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.criteriaB.join(', ')
+                    )
+                  ) : (
+                    <span className="text-slate-600">No specific preference</span>
+                  )}
+                </div>
               </div>
             </div>
             {/* Person B side */}
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                {personB.full_name}
-              </p>
-              <div className="rounded-md bg-slate-950/40 px-2.5 py-2 text-xs text-slate-300">
-                {row.answerB.length > 0 ? (
-                  row.multi && row.answerB.length > 1 ? (
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      {row.answerB.map((v) => (
-                        <li key={v}>{v}</li>
-                      ))}
-                    </ul>
+            <div className="space-y-2">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {personB.full_name}'s Answer
+                </p>
+                <div className="rounded-md bg-slate-950/40 px-2.5 py-2 text-xs text-slate-300">
+                  {row.answerB.length > 0 ? (
+                    row.multi && row.answerB.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.answerB.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.answerB.join(', ')
+                    )
                   ) : (
-                    row.answerB.join(', ')
-                  )
-                ) : (
-                  <span className="text-slate-600">—</span>
-                )}
+                    <span className="text-slate-600">—</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-sky-400/70">
+                  What {personB.full_name} is Looking For
+                </p>
+                <div className="rounded-md bg-sky-950/20 px-2.5 py-2 text-xs text-slate-300 ring-1 ring-sky-500/10">
+                  {row.criteriaA.length > 0 ? (
+                    row.multi && row.criteriaA.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.criteriaA.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.criteriaA.join(', ')
+                    )
+                  ) : (
+                    <span className="text-slate-600">No specific preference</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

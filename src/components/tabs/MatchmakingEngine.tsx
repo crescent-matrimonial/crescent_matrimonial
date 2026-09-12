@@ -1,12 +1,13 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle } from 'lucide-react';
+import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus, Check } from 'lucide-react';
 import type { Match } from '@/lib/types';
 import { useData } from '@/lib/data';
 import { Avatar } from '@/components/Avatar';
 import { Modal } from '@/components/Modal';
 import { PhotoCarousel } from '@/components/PhotoCarousel';
-import { findPotentialMatches, countPotentialMatches, countPotentialMatchesAlreadyPaired, sharedHobbies, hasPreferredEthnicity, hasWorkedOut } from '@/lib/matching';
+import { findPotentialMatches, countPotentialMatches, countPotentialMatchesAlreadyPaired, sharedHobbies, hasPreferredEthnicity, hasWorkedOut, computeCompatibility } from '@/lib/matching';
 import type { CompatibilityResult, PersonWithDetails, QuestionField } from '@/lib/types';
+import { RuleRow } from '@/components/ComparisonSearch';
 
 // --- Field extraction helpers ---
 
@@ -331,6 +332,10 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
   const [photoView, setPhotoView] = useState<{ photos: string[]; name: string } | null>(null);
   const [unpairTarget, setUnpairTarget] = useState<Match | null>(null);
   const [restoreFailedTarget, setRestoreFailedTarget] = useState<Match | null>(null);
+  const [manualPairOpen, setManualPairOpen] = useState(false);
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualSelected, setManualSelected] = useState<PersonWithDetails | null>(null);
+  const [manualConfirm, setManualConfirm] = useState(false);
 
   const active = useMemo(
     () => people.filter((p) => !p.is_deleted && !hasWorkedOut(p.id, matches)),
@@ -408,6 +413,27 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
   }, [matches, selectedPerson]);
 
   const selectedInActivePair = !!selectedActiveMatch;
+
+  const oppositeGender = selectedPerson?.gender === 'male' ? 'female' : 'male';
+
+  const manualSearchResults = useMemo(() => {
+    if (!manualQuery.trim() || !selectedPerson) return [];
+    const q = manualQuery.trim().toLowerCase();
+    return people
+      .filter(
+        (p) =>
+          p.id !== selectedPerson.id &&
+          p.gender === oppositeGender &&
+          !p.is_deleted &&
+          p.full_name.toLowerCase().includes(q),
+      )
+      .slice(0, 6);
+  }, [manualQuery, people, selectedPerson, oppositeGender]);
+
+  const manualCompat = useMemo(() => {
+    if (!selectedPerson || !manualSelected) return null;
+    return computeCompatibility(selectedPerson, manualSelected);
+  }, [selectedPerson, manualSelected]);
 
   const handleInitiate = async (result: CompatibilityResult) => {
     await initiatePair(result.personA.id, result.personB.id);
@@ -561,10 +587,29 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                   </div>
                 );
               })()}
-              <p className="text-sm text-slate-400">
-                Showing <span className="text-slate-200">{results.length}</span> valid
-                matches, ranked by ethnicity preference and shared hobbies.
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-slate-400">
+                  Showing <span className="text-slate-200">{results.length}</span> valid
+                  matches, ranked by ethnicity preference and shared hobbies.
+                </p>
+                <button
+                  onClick={() => {
+                    setManualPairOpen(true);
+                    setManualQuery('');
+                    setManualSelected(null);
+                    setManualConfirm(false);
+                  }}
+                  disabled={selectedInActivePair}
+                  title={selectedInActivePair ? 'Candidate is already in an active pair' : undefined}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                    selectedInActivePair
+                      ? 'cursor-not-allowed border-slate-700 text-slate-500'
+                      : 'border-sky-500/40 text-sky-300 hover:bg-sky-500/10'
+                  }`}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Pair Manually
+                </button>
+              </div>
               {results.length === 0 && dismissedForSelected.length === 0 ? (
                 <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 text-center">
                   <p className="text-sm text-slate-500">
@@ -991,6 +1036,212 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
           </Modal>
         );
       })()}
+
+      {/* Manual pairing modal */}
+      <Modal
+        open={manualPairOpen}
+        onClose={() => {
+          setManualPairOpen(false);
+          setManualSelected(null);
+          setManualQuery('');
+          setManualConfirm(false);
+        }}
+        title="Pair Manually"
+        maxWidth="max-w-4xl"
+      >
+        {selectedPerson && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-400">
+              Search for any {oppositeGender === 'female' ? 'sister' : 'brother'} by name to pair
+              with <span className="font-semibold text-slate-200">{selectedPerson.full_name}</span>,
+              even if they weren't identified as a match by the algorithm.
+            </p>
+
+            {!manualSelected ? (
+              <>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    value={manualQuery}
+                    onChange={(e) => setManualQuery(e.target.value)}
+                    placeholder={`Search for a ${oppositeGender === 'female' ? 'sister' : 'brother'} by name...`}
+                    autoFocus
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2.5 pl-10 pr-4 text-sm text-slate-100 outline-none transition focus:border-sky-500"
+                  />
+                </div>
+                {manualSearchResults.length > 0 && (
+                  <div className="space-y-1">
+                    {manualSearchResults.map((p) => {
+                      const pActive = isInActivePair(p.id, matches);
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            setManualSelected(p);
+                            setManualQuery('');
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg border border-slate-700/50 bg-slate-950/40 px-3 py-2 text-left transition hover:border-sky-500/40 hover:bg-slate-800/40"
+                        >
+                          <Avatar person={p} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm text-slate-200">{p.full_name}</p>
+                            <p className="truncate text-xs text-slate-500">
+                              {p.age != null && `${p.age} • `}
+                              {p.location ?? 'Location unknown'}
+                            </p>
+                          </div>
+                          {pActive && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
+                              <HeartHandshake className="h-3 w-3" /> In Active Pair
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {manualQuery.trim() && manualSearchResults.length === 0 && (
+                  <p className="text-xs text-slate-500">
+                    No {oppositeGender === 'female' ? 'sisters' : 'brothers'} found matching "{manualQuery}".
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Selected person header + score */}
+                <div className="flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-950/40 px-3 py-2.5">
+                  <Avatar person={manualSelected} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-100">
+                      {manualSelected.full_name}
+                    </p>
+                    <p className="truncate text-xs text-slate-500">
+                      {manualSelected.age != null && `${manualSelected.age} • `}
+                      {manualSelected.location ?? 'Location unknown'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-lg font-bold ${
+                      manualCompat?.score === 100
+                        ? 'text-emerald-400'
+                        : (manualCompat?.score ?? 0) >= 70
+                          ? 'text-amber-400'
+                          : 'text-rose-400'
+                    }`}>
+                      {manualCompat?.score ?? 0}%
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {manualCompat?.passed ?? 0}/{manualCompat?.total ?? 0} rules
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setManualSelected(null)}
+                    className="ml-2 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                {manualCompat && (
+                  <>
+                    {/* Both photos and names */}
+                    <div className="flex items-center justify-around gap-4 rounded-xl border border-slate-700/60 bg-slate-900/40 p-5">
+                      <PersonHeader
+                        person={selectedPerson}
+                        onPhotoClick={() => setPhotoView({
+                          photos: selectedPerson.photo_urls.length > 0 ? selectedPerson.photo_urls : (selectedPerson.profile_photo_url ? [selectedPerson.profile_photo_url] : []),
+                          name: selectedPerson.full_name,
+                        })}
+                      />
+                      <div className="flex flex-col items-center text-slate-500">
+                        <Users className="h-7 w-7 text-sky-400" />
+                        <span className="mt-1 text-[10px] uppercase tracking-wider">
+                          Manual Pair
+                        </span>
+                      </div>
+                      <PersonHeader
+                        person={manualSelected}
+                        onPhotoClick={() => setPhotoView({
+                          photos: manualSelected.photo_urls.length > 0 ? manualSelected.photo_urls : (manualSelected.profile_photo_url ? [manualSelected.profile_photo_url] : []),
+                          name: manualSelected.full_name,
+                        })}
+                      />
+                    </div>
+
+                    {sharedHobbies(selectedPerson, manualSelected).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 rounded-lg bg-slate-950/40 px-3 py-2">
+                        <span className="text-xs text-slate-500">Shared hobbies:</span>
+                        {sharedHobbies(selectedPerson, manualSelected).map((h) => (
+                          <span key={h} className="rounded-md bg-sky-500/15 px-2 py-0.5 text-xs text-sky-300">
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <AdminNote name={selectedPerson.full_name} note={selectedPerson.admin_note} />
+                    <AdminNote name={manualSelected.full_name} note={manualSelected.admin_note} />
+
+                    {/* Per-rule breakdown */}
+                    <div className="space-y-1.5">
+                      {manualCompat.rows.map((row) => (
+                        <RuleRow
+                          key={row.key}
+                          row={row}
+                          personA={selectedPerson}
+                          personB={manualSelected}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Collapsible: all responses side by side */}
+                    <AllResponsesSection candidate={selectedPerson} match={manualSelected} />
+                  </>
+                )}
+
+                <div className="flex justify-end gap-2 border-t border-slate-700/60 pt-4">
+                  <button
+                    onClick={() => {
+                      setManualPairOpen(false);
+                      setManualSelected(null);
+                      setManualQuery('');
+                      setManualConfirm(false);
+                    }}
+                    className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                  {!manualConfirm ? (
+                    <button
+                      onClick={() => setManualConfirm(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                    >
+                      <Heart className="h-4 w-4" /> Confirm Pair
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        if (selectedPerson && manualSelected) {
+                          await initiatePair(selectedPerson.id, manualSelected.id);
+                        }
+                        setManualPairOpen(false);
+                        setManualSelected(null);
+                        setManualQuery('');
+                        setManualConfirm(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                    >
+                      <Check className="h-4 w-4" /> Yes, Create Pair
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 }
