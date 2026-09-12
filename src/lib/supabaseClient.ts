@@ -1,9 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const AUTH_REQUIRED_KEY = 'crescent_auth_required';
+const SETTINGS_KEY = 'crescent_dashboard_settings';
+const DEFAULT_URL = 'https://saefetnlvblsrbtvyorg.supabase.co';
+const DEFAULT_KEY = 'sb_publishable_KWhYObgC3mVuFRJuwzu_6w_skJsg1fn';
 
 export interface DashboardSettings {
   supabaseUrl: string;
@@ -11,58 +10,62 @@ export interface DashboardSettings {
 }
 
 /**
- * Returns the single, project-configured Supabase URL + anon key
- * from environment variables. There is no override path.
+ * Reads the admin-configured Supabase URL + publishable key from localStorage,
+ * falling back to the project defaults (the Crescent Matrimonial Supabase
+ * project + its publishable key).
  */
 export function readSettings(): DashboardSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<DashboardSettings>;
+      if (parsed.supabaseUrl && parsed.supabaseAnonKey) {
+        return {
+          supabaseUrl: parsed.supabaseUrl,
+          supabaseAnonKey: parsed.supabaseAnonKey,
+        };
+      }
+    }
+  } catch {
+    /* ignore corrupted storage */
+  }
   return {
-    supabaseUrl: SUPABASE_URL,
-    supabaseAnonKey: SUPABASE_ANON_KEY,
+    supabaseUrl: DEFAULT_URL,
+    supabaseAnonKey: DEFAULT_KEY,
   };
 }
 
-let client: SupabaseClient | null = null;
+export function writeSettings(settings: DashboardSettings): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
 
-/** Returns a cached singleton client. */
+let client: SupabaseClient | null = null;
+let clientKey = '';
+
+/** Returns a cached singleton client keyed by url+key so settings changes pick up. */
 export function getSupabase(): SupabaseClient {
-  if (!client) {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error(
-        'Supabase environment variables are not set. Check your .env file for VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
-      );
-    }
-    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const settings = readSettings();
+  const key = `${settings.supabaseUrl}::${settings.supabaseAnonKey}`;
+  if (!client || clientKey !== key) {
+    client = createClient(settings.supabaseUrl, settings.supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
     });
+    clientKey = key;
   }
   return client;
 }
 
+/** Resets the cached client after settings have been updated. */
+export function resetSupabaseClient(): void {
+  client = null;
+  clientKey = '';
+}
+
 /** Whether a usable anon key has been provided. */
 export function hasConfiguredKey(): boolean {
-  return Boolean(SUPABASE_ANON_KEY);
-}
-
-// ---- Auth-required toggle (kept in localStorage; unrelated to credentials) ----
-
-export function getAuthRequired(): boolean {
-  const stored = localStorage.getItem(AUTH_REQUIRED_KEY);
-  return stored ? JSON.parse(stored) : true;
-}
-
-export function setAuthRequired(required: boolean): void {
-  localStorage.setItem(AUTH_REQUIRED_KEY, JSON.stringify(required));
-}
-
-// ---- One-time migration: remove stale bolt-era credential caches ----
-
-const OLD_SETTINGS_KEY = 'crescent_dashboard_settings';
-try {
-  localStorage.removeItem(OLD_SETTINGS_KEY);
-} catch {
-  /* ignore */
+  return Boolean(readSettings().supabaseAnonKey);
 }
