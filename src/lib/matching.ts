@@ -153,6 +153,12 @@ function parseHeightInches(value: string): number | null {
   return null;
 }
 
+/** Check if a string represents "no answer" (NA, N/A, none, etc.) rather than a real value. */
+function isNaValue(s: string): boolean {
+  const v = s.trim().toLowerCase();
+  return v === '' || v === 'na' || v === 'n/a' || v === 'none' || v === 'no preference' || v === 'any';
+}
+
 /** Get height range from "Wife's/Husband's Shortest/Tallest Height" fields. */
 function getHeightRange(profile: PersonWithDetails): { min: number; max: number } | null {
   const shortestField = getField(profile, 'looking', /shortest.*height|wife.*shortest|husband.*shortest/i);
@@ -161,6 +167,9 @@ function getHeightRange(profile: PersonWithDetails): { min: number; max: number 
     const min = parseHeightInches(shortestField.answer);
     const max = parseHeightInches(tallestField.answer);
     if (min != null && max != null) return { min: Math.min(min, max), max: Math.max(min, max) };
+    // If only one bound parses, treat the other as unbounded
+    if (min != null && isNaValue(tallestField.answer)) return { min, max: Infinity };
+    if (max != null && isNaValue(shortestField.answer)) return { min: 0, max };
   }
   // Try combined range field
   const rangeField = getField(profile, 'looking', /height.*range|partner.*height/i);
@@ -401,6 +410,12 @@ const FINANCIAL_ROLES_MAPPINGS: Array<[string, string[]]> = [
   ['wife_contributes_working', ['wife contributes financially only while she is working']],
 ];
 
+function formatHeightRange(range: { min: number; max: number }): string {
+  if (range.max === Infinity) return `${range.min}+ in`;
+  if (range.min === 0) return `${range.max} in max`;
+  return `${range.min}-${range.max} in`;
+}
+
 // ──────────────────────────────────────────────
 //  Row builder
 // ──────────────────────────────────────────────
@@ -483,8 +498,8 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     heightA != null ? [`${heightA} in`] : [],
     'Height',
     heightB != null ? [`${heightB} in`] : [],
-    hRangeB ? [`${hRangeB.min}-${hRangeB.max} in`] : [],
-    hRangeA ? [`${hRangeA.min}-${hRangeA.max} in`] : [],
+    hRangeB ? [formatHeightRange(hRangeB)] : [],
+    hRangeA ? [formatHeightRange(hRangeA)] : [],
     aPassHeight, bPassHeight, false,
   ));
 
