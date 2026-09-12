@@ -1,10 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const SETTINGS_KEY = 'crescent_dashboard_settings';
-
-// Always use the project configured in .env — no hardcoded fallback.
-const ENV_URL = import.meta.env.VITE_SUPABASE_URL;
-const ENV_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const DEFAULT_URL = 'https://saefetnlvblsrbtvyorg.supabase.co';
+const DEFAULT_KEY = 'sb_publishable_KWhYObgC3mVuFRJuwzu_6w_skJsg1fn';
 
 export interface DashboardSettings {
   supabaseUrl: string;
@@ -12,51 +10,76 @@ export interface DashboardSettings {
 }
 
 /**
- * Returns the Supabase URL + anon key from the .env configuration.
- * The old localStorage override path has been removed.
+ * Reads the admin-configured Supabase URL + publishable key from localStorage,
+ * falling back to the project defaults (the Crescent Matrimonial Supabase
+ * project + its publishable key).
  */
 export function readSettings(): DashboardSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<DashboardSettings>;
+      if (parsed.supabaseUrl && parsed.supabaseAnonKey) {
+        return {
+          supabaseUrl: parsed.supabaseUrl,
+          supabaseAnonKey: parsed.supabaseAnonKey,
+        };
+      }
+    }
+  } catch {
+    /* ignore corrupted storage */
+  }
   return {
-    supabaseUrl: ENV_URL,
-    supabaseAnonKey: ENV_KEY,
+    supabaseUrl: DEFAULT_URL,
+    supabaseAnonKey: DEFAULT_KEY,
   };
 }
 
-let client: SupabaseClient | null = null;
+export function writeSettings(settings: DashboardSettings): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
 
-/** Returns a cached singleton client. */
+let client: SupabaseClient | null = null;
+let clientKey = '';
+
+/** Returns a cached singleton client keyed by url+key so settings changes pick up. */
 export function getSupabase(): SupabaseClient {
-  if (!client) {
-    if (!ENV_URL || !ENV_KEY) {
-      throw new Error(
-        'Supabase environment variables are not set. Check your .env file for VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
-      );
-    }
-    client = createClient(ENV_URL, ENV_KEY, {
+  const settings = readSettings();
+  const key = `${settings.supabaseUrl}::${settings.supabaseAnonKey}`;
+  if (!client || clientKey !== key) {
+    client = createClient(settings.supabaseUrl, settings.supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
     });
+    clientKey = key;
   }
   return client;
 }
 
-/** Resets the cached client (kept for compatibility). */
+/** Resets the cached client after settings have been updated. */
 export function resetSupabaseClient(): void {
   client = null;
+  clientKey = '';
 }
 
 /** Whether a usable anon key has been provided. */
 export function hasConfiguredKey(): boolean {
-  return Boolean(ENV_KEY);
+  return Boolean(readSettings().supabaseAnonKey);
 }
 
-// One-time cleanup: remove any stale credential overrides from the old
-// localStorage-based settings so the app always uses the .env project.
+// One-time cleanup: if a previous session cached credentials pointing to the
+// wrong Supabase project, wipe them so the original project is used.
 try {
-  localStorage.removeItem(SETTINGS_KEY);
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (raw) {
+    const parsed = JSON.parse(raw) as Partial<DashboardSettings>;
+    if (parsed.supabaseUrl && !parsed.supabaseUrl.includes('saefetnlvblsrbtvyorg')) {
+      localStorage.removeItem(SETTINGS_KEY);
+    }
+  }
 } catch {
   /* ignore */
 }
