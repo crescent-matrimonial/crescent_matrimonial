@@ -7,10 +7,9 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { getSupabase, hasConfiguredKey, resetSupabaseClient } from './supabaseClient';
+import { getSupabase, hasConfiguredKey, getAuthRequired, setAuthRequired as setAuthRequiredStorage } from './supabaseClient';
 
 const ADMIN_EMAIL = 'crescentmatrimonial@gmail.com';
-const AUTH_REQUIRED_KEY = 'crescent_auth_required';
 
 type AuthState =
   | { status: 'loading' }
@@ -23,7 +22,6 @@ interface AuthContextValue {
   state: AuthState;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  refreshKeyState: () => void;
   authRequired: boolean;
   setAuthRequired: (required: boolean) => void;
 }
@@ -32,14 +30,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading' });
-  const [authRequired, setAuthRequired] = useState(() => {
-    const stored = localStorage.getItem(AUTH_REQUIRED_KEY);
-    return stored ? JSON.parse(stored) : true;
-  });
+  const [authRequired, setAuthRequiredState] = useState(() => getAuthRequired());
 
-  useEffect(() => {
-    localStorage.setItem(AUTH_REQUIRED_KEY, JSON.stringify(authRequired));
-  }, [authRequired]);
+  const setAuthRequired = (required: boolean) => {
+    setAuthRequiredStorage(required);
+    setAuthRequiredState(required);
+  };
 
   useEffect(() => {
     // If auth is not required, skip authentication check
@@ -112,14 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const supabase = getSupabase();
         await supabase.auth.signOut();
         setState({ status: 'unauthenticated' });
-      },
-      refreshKeyState: () => {
-        resetSupabaseClient();
-        if (!hasConfiguredKey()) {
-          setState({ status: 'needs_key' });
-        } else {
-          setState({ status: 'unauthenticated' });
-        }
       },
       authRequired,
       setAuthRequired,
