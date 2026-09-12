@@ -131,7 +131,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     try {
       const supabase = getSupabase();
-      const [{ data: peopleData, error: pErr }, { data: matchData, error: mErr }, { data: dismissedData, error: dErr }] =
+      const [{ data: peopleData, error: pErr }, { data: matchData, error: mErr }, dismissedRes] =
         await Promise.all([
           supabase.from('people').select('*').order('created_at', { ascending: false }),
           supabase.from('matches').select('*').order('paired_at', { ascending: false }),
@@ -139,7 +139,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ]);
       if (pErr) throw pErr;
       if (mErr) throw mErr;
-      if (dErr) throw dErr;
 
       const basePeople = (peopleData ?? []).map(rowToPerson);
       const profiles = freshProfiles ?? (sheetProfiles.size > 0
@@ -148,7 +147,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSheetProfiles(profiles);
       setPeople(basePeople.map((p) => enrichPerson(p, profiles)));
       setMatches((matchData ?? []).map(rowToMatch));
-      setDismissedPairs((dismissedData ?? []).map(rowToDismissed).map(dismissedToTuple));
+      setDismissedPairs(
+        (dismissedRes.data ?? []).map(rowToDismissed).map(dismissedToTuple),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
