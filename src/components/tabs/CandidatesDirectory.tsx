@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MoreVertical, Eye, Trash2, Users, UserCircle, Search, Database, Heart, RotateCcw, Trash, XCircle } from 'lucide-react';
+import { MoreVertical, Eye, Trash2, Users, UserCircle, Search, Database, Heart, RotateCcw, Trash } from 'lucide-react';
 import { useData } from '@/lib/data';
 import { Avatar } from '@/components/Avatar';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -34,16 +34,16 @@ function CandidateCard({
   person,
   matches,
   potentialCount,
-  failedCount,
   onOpen,
   onGoToEngine,
+  onRemove,
 }: {
   person: PersonWithDetails;
   matches: Match[];
   potentialCount: number;
-  failedCount: number;
   onOpen: () => void;
   onGoToEngine: (personId: string, gender: 'male' | 'female') => void;
+  onRemove: (person: PersonWithDetails) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const status = deriveStatus(person, matches);
@@ -93,7 +93,7 @@ function CandidateCard({
                 <button
                   onClick={() => {
                     setMenuOpen(false);
-                    setRemoveTarget(person);
+                    onRemove(person);
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-rose-300 transition hover:bg-rose-500/10"
                 >
@@ -114,15 +114,6 @@ function CandidateCard({
             title="View in Matchmaking"
           >
             <Heart className="h-3 w-3" /> {status.priorPairs} prior {status.priorPairs === 1 ? 'pair' : 'pairs'}
-          </button>
-        )}
-        {failedCount > 0 && (
-          <button
-            onClick={() => onGoToEngine(person.id, person.gender)}
-            className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-xs text-rose-300 ring-1 ring-rose-500/20 transition hover:bg-rose-500/20"
-            title="View in Matchmaking"
-          >
-            <XCircle className="h-3 w-3" /> {failedCount} didn't work out
           </button>
         )}
         <button
@@ -379,9 +370,9 @@ export function CandidatesDirectory({ onGoToEngine }: { onGoToEngine: (personId:
               person={p}
               matches={matches}
               potentialCount={potentialFor(p)}
-              failedCount={matches.filter((m) => m.outcome === 'failed' && (m.person_1_id === p.id || m.person_2_id === p.id)).length}
               onOpen={() => setSelected(p)}
               onGoToEngine={onGoToEngine}
+              onRemove={setRemoveTarget}
             />
           ))}
         </div>

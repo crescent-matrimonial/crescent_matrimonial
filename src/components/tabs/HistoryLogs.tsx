@@ -195,7 +195,6 @@ export function HistoryLogs() {
               <tr className="border-b border-slate-700/60 bg-slate-900/60 text-xs uppercase tracking-wider text-slate-400">
                 <th className="px-4 py-3 text-left font-medium">Candidate Pair</th>
                 <th className="px-4 py-3 text-left font-medium">Date Paired</th>
-                <th className="px-4 py-3 text-center font-medium">Contact</th>
                 <th className="px-4 py-3 text-left font-medium">Outcome</th>
                 <th className="px-4 py-3 text-left font-medium">Outcome Date</th>
                 <th className="px-4 py-3 text-left font-medium">Notes</th>
@@ -218,13 +217,6 @@ export function HistoryLogs() {
                     </td>
                     <td className="px-4 py-3 text-slate-400">
                       {new Date(m.paired_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {m.exchanged_contact ? (
-                        <CheckCircle2 className="mx-auto h-4 w-4 text-sky-400" />
-                      ) : (
-                        <span className="text-slate-600">—</span>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={m.outcome} />

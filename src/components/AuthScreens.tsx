@@ -1,11 +1,8 @@
-import { Chrome, ShieldCheck, LogIn, Database } from 'lucide-react';
-import { useAuth, ADMIN_EMAIL } from '@/lib/auth';
-import { useState } from 'react';
-import { SettingsModal } from './SettingsModal';
+import { Chrome, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 
 export function LoginScreen() {
   const { state, signInWithGoogle } = useAuth();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const isNeedsKey = state.status === 'needs_key';
 
   return (
@@ -43,24 +40,8 @@ export function LoginScreen() {
             Continue with Google
           </button>
 
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate-500">
-            <LogIn className="h-3.5 w-3.5" />
-            Authorized account: <span className="font-mono text-slate-400">{ADMIN_EMAIL}</span>
-          </div>
-
-          <div className="mt-6 border-t border-slate-700/60 pt-5">
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
-            >
-              <Database className="h-4 w-4" />
-              Configure Supabase Key
-            </button>
-          </div>
         </div>
       </div>
-
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

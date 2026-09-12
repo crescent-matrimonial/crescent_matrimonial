@@ -341,13 +341,21 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
     () =>
       active
         .filter((p) => p.gender === pickerGender)
+        .map((p) => ({
+          person: p,
+          active: isInActivePair(p.id, matches),
+          matchCount: countPotentialMatches(p, active, matches, dismissedPairs)
+            - countPotentialMatchesAlreadyPaired(p, active, matches, dismissedPairs),
+        }))
         .sort((a, b) => {
-          const aActive = isInActivePair(a.id, matches);
-          const bActive = isInActivePair(b.id, matches);
-          if (aActive === bActive) return 0;
-          return aActive ? 1 : -1;
-        }),
-    [active, pickerGender, matches],
+          if (a.active !== b.active) return a.active ? 1 : -1;
+          const aHas = a.matchCount > 0;
+          const bHas = b.matchCount > 0;
+          if (aHas !== bHas) return aHas ? -1 : 1;
+          return a.matchCount - b.matchCount;
+        })
+        .map((entry) => entry.person),
+    [active, pickerGender, matches, dismissedPairs],
   );
 
   const results = useMemo(() => {

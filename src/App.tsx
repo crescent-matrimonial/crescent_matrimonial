@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Moon, Settings, LogOut, Users, Heart, MessageCircle, History } from 'lucide-react';
+import { Moon, LogOut, Users, Heart, MessageCircle, History } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { DataProvider, useData } from '@/lib/data';
 import { LoginScreen, AccessDeniedScreen } from '@/components/AuthScreens';
-import { SettingsModal } from '@/components/SettingsModal';
 import { SyncButton } from '@/components/SyncButton';
 import { CandidatesDirectory } from '@/components/tabs/CandidatesDirectory';
 import { MatchmakingEngine } from '@/components/tabs/MatchmakingEngine';
@@ -24,7 +23,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'history', label: 'History', icon: <History className="h-4 w-4" /> },
 ];
 
-function Header({ onOpenSettings }: { onOpenSettings: () => void }) {
+function Header() {
   const { signOut, authRequired } = useAuth();
   const { useMock, people, matches } = useData();
   const activePending = matches.filter((m) => m.outcome === 'pending').length;
@@ -54,13 +53,6 @@ function Header({ onOpenSettings }: { onOpenSettings: () => void }) {
             {people.filter((p) => !p.is_deleted).length} candidates · {activePending} active
           </span>
           <SyncButton />
-          <button
-            onClick={onOpenSettings}
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-slate-100"
-            aria-label="Settings"
-          >
-            <Settings className="h-5 w-5" />
-          </button>
           {authRequired && (
             <button
               onClick={signOut}
@@ -112,7 +104,6 @@ function TabNav({ active, onChange }: { active: TabKey; onChange: (t: TabKey) =>
 
 function Dashboard() {
   const [tab, setTab] = useState<TabKey>('candidates');
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [engineInitial, setEngineInitial] = useState<EngineInitial | null>(null);
 
   const goToEngineFor = (personId: string, gender: 'male' | 'female') => {
@@ -122,7 +113,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Header onOpenSettings={() => setSettingsOpen(true)} />
+      <Header />
       <TabNav active={tab} onChange={setTab} />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {tab === 'candidates' && <CandidatesDirectory onGoToEngine={goToEngineFor} />}
@@ -130,7 +121,6 @@ function Dashboard() {
         {tab === 'active' && <ActivePairings />}
         {tab === 'history' && <HistoryLogs />}
       </main>
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

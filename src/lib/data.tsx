@@ -10,7 +10,7 @@ import {
 import { getSupabase, hasConfiguredKey } from './supabaseClient';
 import { MOCK_MATCHES, MOCK_PEOPLE, MOCK_SHEET_PROFILES } from './mockData';
 import { fetchAllSheetProfiles, type SheetProfile } from './sheets';
-import { fromDbGender, toDbGender, type Match, type Outcome, type Person, type PersonWithDetails } from './types';
+import { fromDbGender, toDbGender, type Match, type Outcome, type Person, type PersonWithDetails, type DismissedPair } from './types';
 
 interface DataContextValue {
   people: PersonWithDetails[];
@@ -36,24 +36,18 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | null>(null);
 
-const DISMISSED_KEY = 'crescent_dismissed_pairs';
-
-function loadDismissed(): Array<[string, string, string]> {
-  try {
-    const raw = localStorage.getItem(DISMISSED_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown[];
-    return parsed.map((p) => {
-      const arr = p as string[];
-      return [arr[0], arr[1], arr[2] ?? ''];
-    });
-  } catch {
-    return [];
-  }
+function rowToDismissed(row: Record<string, unknown>): DismissedPair {
+  return {
+    id: String(row.id),
+    person_a_id: String(row.person_a_id),
+    person_b_id: String(row.person_b_id),
+    note: (row.note as string) ?? '',
+    created_at: String(row.created_at),
+  };
 }
 
-function saveDismissed(pairs: Array<[string, string, string]>) {
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify(pairs));
+function dismissedToTuple(d: DismissedPair): [string, string, string] {
+  return [d.person_a_id, d.person_b_id, d.note];
 }
 
 function rowToPerson(row: Record<string, unknown>): Person {
@@ -122,7 +116,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const useMock = !hasConfiguredKey();
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (freshProfiles?: Map<string, SheetProfile>) => {
     setLoading(true);
     setError(null);
     if (useMock) {
@@ -131,28 +125,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSheetProfiles(mockProfiles);
       setPeople(MOCK_PEOPLE.map((p) => enrichPerson(p, mockProfiles)));
       setMatches(MOCK_MATCHES);
-      setDismissedPairs(loadDismissed());
+      setDismissedPairs([]);
       setLoading(false);
       return;
     }
     try {
       const supabase = getSupabase();
-      const [{ data: peopleData, error: pErr }, { data: matchData, error: mErr }] =
+      const [{ data: peopleData, error: pErr }, { data: matchData, error: mErr }, { data: dismissedData, error: dErr }] =
         await Promise.all([
           supabase.from('people').select('*').order('created_at', { ascending: false }),
           supabase.from('matches').select('*').order('paired_at', { ascending: false }),
+          supabase.from('dismissed_pairs').select('*').order('created_at', { ascending: false }),
         ]);
       if (pErr) throw pErr;
       if (mErr) throw mErr;
+      if (dErr) throw dErr;
 
       const basePeople = (peopleData ?? []).map(rowToPerson);
-      const profiles = sheetProfiles.size > 0
+      const profiles = freshProfiles ?? (sheetProfiles.size > 0
         ? sheetProfiles
-        : await fetchAllSheetProfiles().catch(() => new Map<string, SheetProfile>());
+        : await fetchAllSheetProfiles().catch(() => new Map<string, SheetProfile>()));
       setSheetProfiles(profiles);
       setPeople(basePeople.map((p) => enrichPerson(p, profiles)));
       setMatches((matchData ?? []).map(rowToMatch));
-      setDismissedPairs(loadDismissed());
+      setDismissedPairs((dismissedData ?? []).map(rowToDismissed).map(dismissedToTuple));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -207,7 +203,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         totalInserted++;
       }
-      await refresh();
+      await refresh(profiles);
       return totalInserted + totalFixed;
     },
     [useMock, refresh],
@@ -340,25 +336,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const dismissPotentialMatch = useCallback((aId: string, bId: string, note: string) => {
+    const [sortedA, sortedB] = [aId, bId].sort();
+    if (useMock) {
+      setDismissedPairs((prev) => {
+        const pairKey = (x: string, y: string) => [x, y].sort().join('|');
+        const key = pairKey(aId, bId);
+        if (prev.some(([x, y]) => pairKey(x, y) === key)) return prev;
+        return [...prev, [aId, bId, note] as [string, string, string]];
+      });
+      return;
+    }
+    const supabase = getSupabase();
+    supabase
+      .from('dismissed_pairs')
+      .upsert({ person_a_id: sortedA, person_b_id: sortedB, note })
+      .then(({ error }) => { if (error) console.error('Failed to persist dismissed pair:', error); });
     setDismissedPairs((prev) => {
       const pairKey = (x: string, y: string) => [x, y].sort().join('|');
       const key = pairKey(aId, bId);
       if (prev.some(([x, y]) => pairKey(x, y) === key)) return prev;
-      const next = [...prev, [aId, bId, note] as [string, string, string]];
-      saveDismissed(next);
-      return next;
+      return [...prev, [aId, bId, note] as [string, string, string]];
     });
-  }, []);
+  }, [useMock]);
 
   const undismissPair = useCallback((aId: string, bId: string) => {
+    const [sortedA, sortedB] = [aId, bId].sort();
+    if (useMock) {
+      setDismissedPairs((prev) => {
+        const pairKey = (x: string, y: string) => [x, y].sort().join('|');
+        const key = pairKey(aId, bId);
+        return prev.filter(([x, y]) => pairKey(x, y) !== key);
+      });
+      return;
+    }
+    const supabase = getSupabase();
+    supabase
+      .from('dismissed_pairs')
+      .delete()
+      .eq('person_a_id', sortedA)
+      .eq('person_b_id', sortedB)
+      .then(({ error }) => { if (error) console.error('Failed to remove dismissed pair:', error); });
     setDismissedPairs((prev) => {
       const pairKey = (x: string, y: string) => [x, y].sort().join('|');
       const key = pairKey(aId, bId);
-      const next = prev.filter(([x, y]) => pairKey(x, y) !== key);
-      saveDismissed(next);
-      return next;
+      return prev.filter(([x, y]) => pairKey(x, y) !== key);
     });
-  }, []);
+  }, [useMock]);
 
   const seedSampleData = useCallback(async () => {
     if (useMock) return;

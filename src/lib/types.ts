@@ -81,6 +81,14 @@ export interface MatchWithPeople extends Match {
   person_2: Person | null;
 }
 
+export interface DismissedPair {
+  id: string;
+  person_a_id: string;
+  person_b_id: string;
+  note: string;
+  created_at: string;
+}
+
 export interface CompatibilityResult {
   personA: PersonWithDetails;
   personB: PersonWithDetails;
