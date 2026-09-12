@@ -1,0 +1,2 @@
+[functions.send-pair-email]
+verify_jwt = false

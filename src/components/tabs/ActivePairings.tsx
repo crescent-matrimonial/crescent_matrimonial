@@ -8,13 +8,13 @@ import {
   Phone,
   Search,
   Unplug,
-  MessageSquare,
   ArrowRightLeft,
 } from 'lucide-react';
 import { useData } from '@/lib/data';
 import { Avatar } from '@/components/Avatar';
 import { Modal } from '@/components/Modal';
 import { PairDetailsModal } from '@/components/PairDetailsModal';
+import { EmailPreviewModal } from '@/components/EmailPreviewModal';
 import type { Match, PersonWithDetails } from '@/lib/types';
 
 type ContactFilter = 'all' | 'exchanged' | 'none';
@@ -133,6 +133,7 @@ export function ActivePairings() {
   const [archiveTarget, setArchiveTarget] = useState<Match | null>(null);
   const [unpairTarget, setUnpairTarget] = useState<Match | null>(null);
   const [detailTarget, setDetailTarget] = useState<Match | null>(null);
+  const [emailTarget, setEmailTarget] = useState<{ recipient: PersonWithDetails; partner: PersonWithDetails } | null>(null);
   const [query, setQuery] = useState('');
   const [contactFilter, setContactFilter] = useState<ContactFilter>('all');
 
@@ -282,8 +283,24 @@ export function ActivePairings() {
                   )}
                 </div>
 
+                {/* Email buttons */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setEmailTarget({ recipient: p1, partner: p2 })}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-500/30 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-500/10"
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Email {p1.full_name.split(' ')[0]}
+                  </button>
+                  <button
+                    onClick={() => setEmailTarget({ recipient: p2, partner: p1 })}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-500/30 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-500/10"
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Email {p2.full_name.split(' ')[0]}
+                  </button>
+                </div>
+
                 {/* Action buttons */}
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     onClick={() =>
                       updateMatch(m.id, {
@@ -350,6 +367,13 @@ export function ActivePairings() {
         onArchive={(notes) =>
           archiveTarget && archivePair(archiveTarget.id, 'failed', notes)
         }
+      />
+
+      <EmailPreviewModal
+        open={!!emailTarget}
+        onClose={() => setEmailTarget(null)}
+        recipient={emailTarget?.recipient ?? null}
+        partner={emailTarget?.partner ?? null}
       />
 
       <UnpairModal
