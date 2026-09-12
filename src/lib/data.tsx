@@ -11,6 +11,7 @@ import { getSupabase, hasConfiguredKey } from './supabaseClient';
 import { MOCK_MATCHES, MOCK_PEOPLE, MOCK_SHEET_PROFILES } from './mockData';
 import { fetchAllSheetProfiles, type SheetProfile } from './sheets';
 import { fromDbGender, toDbGender, type Match, type Outcome, type Person, type PersonWithDetails, type DismissedPair } from './types';
+import { computeCompatibility } from './matching';
 
 interface DataContextValue {
   people: PersonWithDetails[];
@@ -106,6 +107,70 @@ function enrichPerson(person: Person, profiles: Map<string, SheetProfile>): Pers
   };
 }
 
+/** Auto-sync pending matches: create new matches for full-compatible pairs, remove stale ones. */
+async function autoSyncMatches(
+  supabase: ReturnType<typeof getSupabase>,
+  enrichedPeople: PersonWithDetails[],
+  existingMatches: Match[],
+  dismissed: Array<[string, string, string]>,
+): Promise<void> {
+  const pairKey = (x: string, y: string) => [x, y].sort().join('|');
+
+  const blocked = new Set<string>([
+    ...existingMatches
+      .filter((m) => m.outcome === 'failed' || m.outcome === 'manually_removed' || m.outcome === 'worked_out')
+      .map((m) => pairKey(m.person_1_id, m.person_2_id)),
+    ...dismissed.map(([x, y]) => pairKey(x, y)),
+  ]);
+
+  const existingPending = new Set<string>(
+    existingMatches
+      .filter((m) => m.outcome === 'pending')
+      .map((m) => pairKey(m.person_1_id, m.person_2_id)),
+  );
+
+  const activeMales = enrichedPeople.filter((p) => !p.is_deleted && p.gender === 'male');
+  const activeFemales = enrichedPeople.filter((p) => !p.is_deleted && p.gender === 'female');
+
+  const fullMatchPairs: Array<{ maleId: string; femaleId: string }> = [];
+  for (const male of activeMales) {
+    for (const female of activeFemales) {
+      const key = pairKey(male.id, female.id);
+      if (blocked.has(key)) continue;
+      const result = computeCompatibility(male, female);
+      if (result.score === 100) {
+        fullMatchPairs.push({ maleId: male.id, femaleId: female.id });
+      }
+    }
+  }
+
+  const fullMatchKeys = new Set(fullMatchPairs.map((p) => pairKey(p.maleId, p.femaleId)));
+
+  const toInsert = fullMatchPairs.filter((p) => !existingPending.has(pairKey(p.maleId, p.femaleId)));
+  const toDelete = existingMatches.filter(
+    (m) => m.outcome === 'pending' && !fullMatchKeys.has(pairKey(m.person_1_id, m.person_2_id)),
+  );
+
+  if (toInsert.length > 0) {
+    const rows = toInsert.map((p) => ({
+      person_1_id: p.maleId,
+      person_2_id: p.femaleId,
+      paired_at: new Date().toISOString(),
+      exchanged_contact: false,
+      outcome: 'pending',
+    }));
+    const { error } = await supabase.from('matches').insert(rows);
+    if (error) console.error('Auto-sync: failed to insert new matches:', error);
+  }
+
+  if (toDelete.length > 0) {
+    for (const m of toDelete) {
+      const { error } = await supabase.from('matches').delete().eq('id', m.id);
+      if (error) console.error('Auto-sync: failed to delete stale match:', error);
+    }
+  }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [people, setPeople] = useState<PersonWithDetails[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -116,7 +181,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const useMock = !hasConfiguredKey();
 
-  const refresh = useCallback(async (freshProfiles?: Map<string, SheetProfile>) => {
+  const refresh = useCallback(async (freshProfiles?: Map<string, SheetProfile>, runAutoMatch?: boolean) => {
     setLoading(true);
     setError(null);
     if (useMock) {
@@ -145,11 +210,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ? sheetProfiles
         : await fetchAllSheetProfiles().catch(() => new Map<string, SheetProfile>()));
       setSheetProfiles(profiles);
-      setPeople(basePeople.map((p) => enrichPerson(p, profiles)));
-      setMatches((matchData ?? []).map(rowToMatch));
-      setDismissedPairs(
-        (dismissedRes.data ?? []).map(rowToDismissed).map(dismissedToTuple),
-      );
+      const enrichedPeople = basePeople.map((p) => enrichPerson(p, profiles));
+      setPeople(enrichedPeople);
+      const currentMatches = (matchData ?? []).map(rowToMatch);
+      setMatches(currentMatches);
+      const currentDismissed = (dismissedRes.data ?? []).map(rowToDismissed).map(dismissedToTuple);
+      setDismissedPairs(currentDismissed);
+
+      if (runAutoMatch) {
+        await autoSyncMatches(supabase, enrichedPeople, currentMatches, currentDismissed);
+        const { data: updatedMatchData, error: umErr } = await supabase
+          .from('matches')
+          .select('*')
+          .order('paired_at', { ascending: false });
+        if (!umErr && updatedMatchData) {
+          setMatches(updatedMatchData.map(rowToMatch));
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -204,7 +281,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         totalInserted++;
       }
-      await refresh(profiles);
+      await refresh(profiles, true);
       return totalInserted + totalFixed;
     },
     [useMock, refresh],
