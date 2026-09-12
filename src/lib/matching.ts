@@ -340,9 +340,14 @@ function getWillingToRelocate(profile: PersonWithDetails): boolean {
 // ──────────────────────────────────────────────
 
 function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'): string[] {
-  // "Country of Ethnicity" in about; "Wife's/Husband's Country of Ethnicity" in looking
-  const primary = getField(profile, section, /country.*ethnicity|ethnicity/i);
-  const secondary = getField(profile, section, /secondary.*country.*ethnicity|secondary.*ethnicity/i);
+  const dict = section === 'about' ? profile.about_you : profile.looking_for;
+  const fields = Object.values(dict);
+  const primary = fields.find(
+    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question),
+  );
+  const secondary = fields.find(
+    (f) => /secondary.*ethnicity/i.test(f.question),
+  );
   const result: string[] = [];
   if (primary) {
     const vals = primary.values.length > 0 ? primary.values : (primary.answer ? [primary.answer] : []);
@@ -370,7 +375,10 @@ function getEthnicityPreference(profile: PersonWithDetails): 'must' | 'any' | 'p
 }
 
 function getEthnicityPreferenceDisplay(profile: PersonWithDetails): string[] {
-  const field = getField(profile, 'looking', /country.*ethnicity/i);
+  const allFields = [...Object.values(profile.looking_for), ...Object.values(profile.about_you)];
+  const field = allFields.find(
+    (f) => /country.*ethnicity.*preference|ethnicity.*preference/i.test(f.question),
+  );
   if (!field) return [];
   const raw = field.values.length > 0 ? field.values : (field.answer ? [field.answer] : []);
   return raw.map((v) => v.trim()).filter(Boolean);
@@ -668,13 +676,18 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     relocA || relocB ||
     stateAAbout == null || stateBAbout == null;
   if (locationPass) passed++;
+  const stateCriteriaA = relocA
+    ? [`Open to relocating from ${stateAAbout ?? 'their state'}`]
+    : stateAAbout ? [stateAAbout] : [];
+  const stateCriteriaB = relocB
+    ? [`Open to relocating from ${stateBAbout ?? 'their state'}`]
+    : stateBAbout ? [stateBAbout] : [];
   rows.push(makeRow(
     'location', 'State',
     stateAAbout ? [stateAAbout] : [],
     'State',
     stateBAbout ? [stateBAbout] : [],
-    stateBAbout ? [stateBAbout] : [],
-    stateAAbout ? [stateAAbout] : [],
+    stateCriteriaA, stateCriteriaB,
     true, true, false,
   ));
 
