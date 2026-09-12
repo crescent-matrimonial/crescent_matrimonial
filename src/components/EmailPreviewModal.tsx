@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Send, TestTube, Loader2, CheckCircle2, AlertCircle, Paperclip } from 'lucide-react';
+import { Send, TestTube, Loader2, CheckCircle2, AlertCircle, Paperclip } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import type { PersonWithDetails } from '@/lib/types';
 import { getSupabase } from '@/lib/supabaseClient';
@@ -10,6 +10,10 @@ interface EmailPreviewModalProps {
   recipient: PersonWithDetails | null;
   partner: PersonWithDetails | null;
 }
+
+const ADMIN_EMAIL = 'crescentmatrimonial@gmail.com';
+const FROM_EMAIL = 'onboarding@resend.dev';
+const SUBJECT = 'A New Match Has Been Found - Crescent Matrimonial';
 
 function buildPreviewText(recipientName: string, partnerName: string): string {
   return `Assalamu Alaikum ${recipientName},
@@ -38,6 +42,67 @@ Warm regards,
 Crescent Matrimonial Team`;
 }
 
+function buildHtmlBody(recipientName: string, partnerName: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Georgia,'Times New Roman',serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0f172a;padding:32px 40px;">
+          <h1 style="margin:0;color:#f8fafc;font-size:22px;font-weight:600;letter-spacing:0.5px;">Crescent Matrimonial</h1>
+          <p style="margin:4px 0 0;color:#94a3b8;font-size:13px;">A New Match Has Been Found</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px;">
+          <p style="margin:0 0 20px;color:#1e293b;font-size:16px;line-height:1.8;">
+            Assalamu Alaikum ${recipientName},
+          </p>
+          <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.8;">
+            We hope this message finds you in the best of health and Iman. We are pleased to let you know that after carefully reviewing profiles, we have identified a potential match for you.
+          </p>
+          <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.8;">
+            You have been paired with: <strong style="color:#0f172a;">${partnerName}</strong>
+          </p>
+          <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.8;">
+            Attached to this email, you will find:
+          </p>
+          <ul style="margin:0 0 20px 20px;color:#334155;font-size:15px;line-height:1.8;">
+            <li>Your potential match's Bio Data for your review</li>
+            <li>Photos submitted by your potential match</li>
+          </ul>
+          <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.8;">
+            Please take your time to review the information provided. We kindly ask that you respond to this email letting us know whether you would like to proceed with exchanging contact information.
+          </p>
+          <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.8;">
+            <strong style="color:#0f172a;">Important:</strong> All information shared is confidential and should be treated with the utmost respect and discretion. Please do not share the attached materials with anyone outside of your immediate family members involved in the decision-making process.
+          </p>
+          <p style="margin:0 0 8px;color:#334155;font-size:15px;line-height:1.8;">
+            Simply reply to this email with one of the following:
+          </p>
+          <ul style="margin:0 0 20px 20px;color:#334155;font-size:15px;line-height:1.8;">
+            <li>"Yes, I would like to exchange contacts"</li>
+            <li>"No, I would like to pass on this match"</li>
+          </ul>
+          <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.8;">
+            If you have any questions or need more information before making a decision, please don't hesitate to reach out to us.
+          </p>
+          <p style="margin:0;color:#334155;font-size:15px;line-height:1.8;">
+            May Allah guide you in this journey and bless you with a righteous spouse.
+          </p>
+        </td></tr>
+        <tr><td style="padding:24px 40px 36px;border-top:1px solid #e2e8f0;">
+          <p style="margin:0;color:#64748b;font-size:14px;line-height:1.6;">
+            Warm regards,<br><strong style="color:#0f172a;">Crescent Matrimonial Team</strong>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 type SendStatus = 'idle' | 'sending' | 'success' | 'error';
 
 export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPreviewModalProps) {
@@ -48,6 +113,7 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
   if (!recipient || !partner) return null;
 
   const previewText = buildPreviewText(recipient.full_name, partner.full_name);
+  const htmlBody = buildHtmlBody(recipient.full_name, partner.full_name);
   const attachmentCount =
     (partner.bio_data_url ? 1 : 0) + (partner.photo_urls?.length ?? 0);
 
@@ -60,12 +126,11 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
       const supabase = getSupabase();
       const { data, error } = await supabase.functions.invoke('send-pair-email', {
         body: {
-          recipientName: recipient.full_name,
-          recipientEmail: recipient.email,
-          partnerName: partner.full_name,
-          partnerBioDataUrl: partner.bio_data_url,
-          partnerPhotoUrls: partner.photo_urls ?? [],
-          isTest,
+          from: FROM_EMAIL,
+          to: isTest ? ADMIN_EMAIL : recipient.email,
+          subject: SUBJECT,
+          html: htmlBody,
+          text: previewText,
         },
       });
 
@@ -93,7 +158,7 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
         <div className="rounded-lg border border-slate-700/60 bg-slate-950/40 p-3 space-y-2">
           <div className="flex gap-2 text-xs">
             <span className="font-semibold text-slate-400 w-16 shrink-0">From:</span>
-            <span className="text-slate-200">crescentmatrimonial@gmail.com</span>
+            <span className="text-slate-200">{FROM_EMAIL}</span>
           </div>
           <div className="flex gap-2 text-xs">
             <span className="font-semibold text-slate-400 w-16 shrink-0">To:</span>
@@ -101,7 +166,7 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
           </div>
           <div className="flex gap-2 text-xs">
             <span className="font-semibold text-slate-400 w-16 shrink-0">Subject:</span>
-            <span className="text-slate-200">A New Match Has Been Found - Crescent Matrimonial</span>
+            <span className="text-slate-200">{SUBJECT}</span>
           </div>
           {attachmentCount > 0 && (
             <div className="flex gap-2 text-xs">
