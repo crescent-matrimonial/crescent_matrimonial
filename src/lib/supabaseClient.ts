@@ -1,8 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const SETTINGS_KEY = 'crescent_dashboard_settings';
-const DEFAULT_URL = 'https://saefetnlvblsrbtvyorg.supabase.co';
-const DEFAULT_KEY = 'sb_publishable_KWhYObgC3mVuFRJuwzu_6w_skJsg1fn';
+const DEFAULT_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://saefetnlvblsrbtvyorg.supabase.co';
+const DEFAULT_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_KWhYObgC3mVuFRJuwzu_6w_skJsg1fn';
 
 export interface DashboardSettings {
   supabaseUrl: string;
