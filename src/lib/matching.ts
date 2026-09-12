@@ -344,8 +344,14 @@ function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'):
   const primary = getField(profile, section, /country.*ethnicity|ethnicity/i);
   const secondary = getField(profile, section, /secondary.*country.*ethnicity|secondary.*ethnicity/i);
   const result: string[] = [];
-  if (primary) result.push(...normList(primary.values.length > 0 ? primary.values : [primary.answer]));
-  if (secondary) result.push(...normList(secondary.values.length > 0 ? secondary.values : [secondary.answer]));
+  if (primary) {
+    const vals = primary.values.length > 0 ? primary.values : (primary.answer ? [primary.answer] : []);
+    result.push(...vals.map((v) => v.trim()).filter(Boolean));
+  }
+  if (secondary) {
+    const vals = secondary.values.length > 0 ? secondary.values : (secondary.answer ? [secondary.answer] : []);
+    result.push(...vals.map((v) => v.trim()).filter(Boolean));
+  }
   return result;
 }
 
@@ -361,6 +367,13 @@ function getEthnicityPreference(profile: PersonWithDetails): 'must' | 'any' | 'p
   }
   // If the answer contains actual country names, treat as 'any'
   return 'any';
+}
+
+function getEthnicityPreferenceDisplay(profile: PersonWithDetails): string[] {
+  const field = getField(profile, 'looking', /country.*ethnicity/i);
+  if (!field) return [];
+  const raw = field.values.length > 0 ? field.values : (field.answer ? [field.answer] : []);
+  return raw.map((v) => v.trim()).filter(Boolean);
 }
 
 function checkEthnicityDirection(
@@ -482,8 +495,8 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     ageA != null ? [String(ageA)] : [],
     'Age Range',
     ageB != null ? [String(ageB)] : [],
-    rangeB ? [`${rangeB.min}-${rangeB.max}`] : [],
     rangeA ? [`${rangeA.min}-${rangeA.max}`] : [],
+    rangeB ? [`${rangeB.min}-${rangeB.max}`] : [],
     aPassAge, bPassAge, false,
   ));
 
@@ -504,8 +517,8 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     heightA != null ? [formatHeightInches(heightA)] : [],
     'Height',
     heightB != null ? [formatHeightInches(heightB)] : [],
-    hRangeB ? [formatHeightRange(hRangeB)] : [],
     hRangeA ? [formatHeightRange(hRangeA)] : [],
+    hRangeB ? [formatHeightRange(hRangeB)] : [],
     aPassHeight, bPassHeight, false,
   ));
 
@@ -673,10 +686,12 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   if (ethPass) passed++;
   const ethA = getEthnicity(a, 'about');
   const ethB = getEthnicity(b, 'about');
+  const ethPrefA = getEthnicityPreferenceDisplay(a);
+  const ethPrefB = getEthnicityPreferenceDisplay(b);
   rows.push(makeRow(
     'ethnicity', 'Country of Ethnicity',
     ethA, 'Country of Ethnicity', ethB,
-    [], [],
+    ethPrefA, ethPrefB,
     aPassEth, bPassEth, true,
   ));
 
@@ -689,7 +704,7 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   rows.push(makeRow(
     'living_situation', 'Living Situation Post Marriage',
     aLiving, 'Living Situation Post Marriage', bLiving,
-    bLiving, aLiving,
+    [], [],
     livingPass, livingPass, true,
   ));
 
@@ -702,7 +717,7 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   rows.push(makeRow(
     'financial_roles', 'Financial and Home Roles',
     aFinancial, 'Financial and Home Roles', bFinancial,
-    bFinancial, aFinancial,
+    [], [],
     financialPass, financialPass, true,
   ));
 
