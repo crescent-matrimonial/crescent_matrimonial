@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus, Check } from 'lucide-react';
+import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus } from 'lucide-react';
 import type { Match } from '@/lib/types';
 import { useData } from '@/lib/data';
 import { Avatar } from '@/components/Avatar';
@@ -335,7 +335,6 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
   const [manualPairOpen, setManualPairOpen] = useState(false);
   const [manualQuery, setManualQuery] = useState('');
   const [manualSelected, setManualSelected] = useState<PersonWithDetails | null>(null);
-  const [manualConfirm, setManualConfirm] = useState(false);
 
   const active = useMemo(
     () => people.filter((p) => !p.is_deleted && !hasWorkedOut(p.id, matches)),
@@ -597,7 +596,6 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                     setManualPairOpen(true);
                     setManualQuery('');
                     setManualSelected(null);
-                    setManualConfirm(false);
                   }}
                   disabled={selectedInActivePair}
                   title={selectedInActivePair ? 'Candidate is already in an active pair' : undefined}
@@ -1044,7 +1042,6 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
           setManualPairOpen(false);
           setManualSelected(null);
           setManualQuery('');
-          setManualConfirm(false);
         }}
         title="Pair Manually"
         maxWidth="max-w-4xl"
@@ -1206,35 +1203,24 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                       setManualPairOpen(false);
                       setManualSelected(null);
                       setManualQuery('');
-                      setManualConfirm(false);
                     }}
                     className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800"
                   >
                     Cancel
                   </button>
-                  {!manualConfirm ? (
-                    <button
-                      onClick={() => setManualConfirm(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-                    >
-                      <Heart className="h-4 w-4" /> Confirm Pair
-                    </button>
-                  ) : (
-                    <button
-                      onClick={async () => {
-                        if (selectedPerson && manualSelected) {
-                          await initiatePair(selectedPerson.id, manualSelected.id);
-                        }
-                        setManualPairOpen(false);
-                        setManualSelected(null);
-                        setManualQuery('');
-                        setManualConfirm(false);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-                    >
-                      <Check className="h-4 w-4" /> Yes, Create Pair
-                    </button>
-                  )}
+                  <button
+                    onClick={async () => {
+                      if (selectedPerson && manualSelected) {
+                        await initiatePair(selectedPerson.id, manualSelected.id);
+                      }
+                      setManualPairOpen(false);
+                      setManualSelected(null);
+                      setManualQuery('');
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                  >
+                    <Heart className="h-4 w-4" /> Confirm Pair
+                  </button>
                 </div>
               </>
             )}

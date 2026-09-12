@@ -90,15 +90,15 @@ export function RuleRow({
                   What {personA.full_name} is Looking For
                 </p>
                 <div className="rounded-md bg-sky-950/20 px-2.5 py-2 text-xs text-slate-300 ring-1 ring-sky-500/10">
-                  {row.criteriaB.length > 0 ? (
+                  {row.criteriaA.length > 0 ? (
                     row.multi && row.criteriaB.length > 1 ? (
                       <ul className="list-disc pl-4 space-y-0.5">
-                        {row.criteriaB.map((v) => (
+                        {row.criteriaA.map((v) => (
                           <li key={v}>{v}</li>
                         ))}
                       </ul>
                     ) : (
-                      row.criteriaB.join(', ')
+                      row.criteriaA.join(', ')
                     )
                   ) : (
                     <span className="text-slate-600">No specific preference</span>
@@ -133,36 +133,21 @@ export function RuleRow({
                   What {personB.full_name} is Looking For
                 </p>
                 <div className="rounded-md bg-sky-950/20 px-2.5 py-2 text-xs text-slate-300 ring-1 ring-sky-500/10">
-                  {row.criteriaA.length > 0 ? (
+                  {row.criteriaB.length > 0 ? (
                     row.multi && row.criteriaA.length > 1 ? (
                       <ul className="list-disc pl-4 space-y-0.5">
-                        {row.criteriaA.map((v) => (
+                        {row.criteriaB.map((v) => (
                           <li key={v}>{v}</li>
                         ))}
                       </ul>
                     ) : (
-                      row.criteriaA.join(', ')
+                      row.criteriaB.join(', ')
                     )
                   ) : (
                     <span className="text-slate-600">No specific preference</span>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-          {/* Direction indicators */}
-          <div className="mt-3 flex flex-col gap-1.5 sm:flex-row sm:gap-4">
-            <div className="flex items-center gap-2 text-xs">
-              <StatusIcon pass={row.aMatchesB} />
-              <span className="text-slate-400">
-                {personA.full_name}'s preferences → {personB.full_name}'s answers
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <StatusIcon pass={row.bMatchesA} />
-              <span className="text-slate-400">
-                {personB.full_name}'s preferences → {personA.full_name}'s answers
-              </span>
             </div>
           </div>
         </div>

@@ -410,10 +410,16 @@ const FINANCIAL_ROLES_MAPPINGS: Array<[string, string[]]> = [
   ['wife_contributes_working', ['wife contributes financially only while she is working']],
 ];
 
+function formatHeightInches(inches: number): string {
+  const ft = Math.floor(inches / 12);
+  const inch = inches % 12;
+  return `${ft}'${inch}"`;
+}
+
 function formatHeightRange(range: { min: number; max: number }): string {
-  if (range.max === Infinity) return `${range.min}+ in`;
-  if (range.min === 0) return `${range.max} in max`;
-  return `${range.min}-${range.max} in`;
+  if (range.max === Infinity) return `${formatHeightInches(range.min)}+`;
+  if (range.min === 0) return `${formatHeightInches(range.max)} max`;
+  return `${formatHeightInches(range.min)} - ${formatHeightInches(range.max)}`;
 }
 
 // ──────────────────────────────────────────────
@@ -495,9 +501,9 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   if (heightPass) passed++;
   rows.push(makeRow(
     'height_range', 'Height',
-    heightA != null ? [`${heightA} in`] : [],
+    heightA != null ? [formatHeightInches(heightA)] : [],
     'Height',
-    heightB != null ? [`${heightB} in`] : [],
+    heightB != null ? [formatHeightInches(heightB)] : [],
     hRangeB ? [formatHeightRange(hRangeB)] : [],
     hRangeA ? [formatHeightRange(hRangeA)] : [],
     aPassHeight, bPassHeight, false,
