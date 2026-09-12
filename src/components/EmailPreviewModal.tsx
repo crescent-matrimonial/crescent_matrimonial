@@ -12,7 +12,7 @@ interface EmailPreviewModalProps {
 }
 
 const ADMIN_EMAIL = 'crescentmatrimonial@gmail.com';
-const FROM_EMAIL = 'onboarding@resend.dev';
+const FROM_EMAIL = 'crescentmatrimonial@gmail.com';
 const SUBJECT = 'A New Match Has Been Found - Crescent Matrimonial';
 
 function buildPreviewText(recipientName: string, partnerName: string): string {
@@ -124,6 +124,24 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
 
     try {
       const supabase = getSupabase();
+
+      // Build attachment list from partner's bio data and photos
+      const attachments: { filename: string; url: string }[] = [];
+      if (partner.bio_data_url) {
+        attachments.push({
+          filename: `${partner.full_name.replace(/\s+/g, '_')}_BioData.pdf`,
+          url: partner.bio_data_url,
+        });
+      }
+      for (let i = 0; i < (partner.photo_urls?.length ?? 0); i++) {
+        const url = partner.photo_urls![i];
+        const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
+        attachments.push({
+          filename: `${partner.full_name.replace(/\s+/g, '_')}_Photo_${i + 1}.${ext}`,
+          url,
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke('send-pair-email', {
         body: {
           from: FROM_EMAIL,
@@ -131,6 +149,7 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
           subject: SUBJECT,
           html: htmlBody,
           text: previewText,
+          attachments,
         },
       });
 
