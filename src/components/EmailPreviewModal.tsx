@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Mail, Send, TestTube, Loader2, CheckCircle2, AlertCircle, Paperclip } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import type { PersonWithDetails } from '@/lib/types';
-import { readSettings } from '@/lib/supabaseClient';
+import { getSupabase } from '@/lib/supabaseClient';
 
 interface EmailPreviewModalProps {
   open: boolean;
@@ -57,30 +57,20 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
     setErrorMsg('');
 
     try {
-      const settings = readSettings();
-      const url = `${settings.supabaseUrl}/functions/v1/send-pair-email`;
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${settings.supabaseAnonKey}`,
-        },
-        body: JSON.stringify({
+      const supabase = getSupabase();
+      const { data, error } = await supabase.functions.invoke('send-pair-email', {
+        body: {
           recipientName: recipient.full_name,
           recipientEmail: recipient.email,
           partnerName: partner.full_name,
           partnerBioDataUrl: partner.bio_data_url,
           partnerPhotoUrls: partner.photo_urls ?? [],
           isTest,
-        }),
+        },
       });
 
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        throw new Error(data.error ?? `Request failed (${res.status})`);
-      }
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setSendStatus('success');
     } catch (err) {
