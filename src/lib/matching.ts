@@ -375,9 +375,9 @@ function getEthnicityPreference(profile: PersonWithDetails): 'must' | 'any' | 'p
 }
 
 function getEthnicityPreferenceDisplay(profile: PersonWithDetails): string[] {
-  const allFields = [...Object.values(profile.looking_for), ...Object.values(profile.about_you)];
-  const field = allFields.find(
-    (f) => /country.*ethnicity.*preference|ethnicity.*preference/i.test(f.question),
+  const lookingFields = Object.values(profile.looking_for);
+  const field = lookingFields.find(
+    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question),
   );
   if (!field) return [];
   const raw = field.values.length > 0 ? field.values : (field.answer ? [field.answer] : []);
