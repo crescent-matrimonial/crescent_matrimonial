@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus } from 'lucide-react';
+import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus, Mail } from 'lucide-react';
 import type { Match } from '@/lib/types';
 import { useData } from '@/lib/data';
 import { Avatar } from '@/components/Avatar';
@@ -178,6 +178,14 @@ function PersonHeader({ person, onPhotoClick }: { person: PersonWithDetails; onP
       <div>
         <h3 className="text-base font-semibold text-slate-100">{person.full_name}</h3>
         {age != null && <p className="text-xs text-slate-500">{age} yrs old</p>}
+        {person.email && (
+          <a
+            href={`mailto:${person.email}`}
+            className="mt-1 inline-flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300"
+          >
+            <Mail className="h-3 w-3" /> {person.email}
+          </a>
+        )}
       </div>
     </div>
   );

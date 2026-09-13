@@ -5,6 +5,7 @@ import {
   Heart,
   ArrowRightLeft,
   StickyNote,
+  Mail,
 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Avatar } from './Avatar';
@@ -157,6 +158,14 @@ function PersonHeader({
       <div>
         <h3 className="text-base font-semibold text-slate-100">{person.full_name}</h3>
         {person.age != null && <p className="text-xs text-slate-500">{person.age} yrs old</p>}
+        {person.email && (
+          <a
+            href={`mailto:${person.email}`}
+            className="mt-1 inline-flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300"
+          >
+            <Mail className="h-3 w-3" /> {person.email}
+          </a>
+        )}
       </div>
     </div>
   );
