@@ -335,6 +335,41 @@ function getWillingToRelocate(profile: PersonWithDetails): boolean {
   return /yes|willing|open/i.test(field.answer);
 }
 
+/**
+ * Levenshtein edit distance between two strings.
+ * Used to tolerate minor typos in free-text state/country entries.
+ */
+function editDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+/**
+ * Compare two state/country strings tolerating:
+ * - Exact match (case-insensitive, already normalized by getState)
+ * - One response fully contained within the other (e.g. "New York" vs "New York, USA")
+ * - Minor typos (edit distance within a threshold scaled to the longer string's length)
+ */
+function locationsMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  const longer = Math.max(a.length, b.length);
+  const allowedTypos = Math.max(1, Math.floor(longer / 4));
+  return editDistance(a, b) <= allowedTypos;
+}
+
 // ──────────────────────────────────────────────
 //  Rule 11: Ethnicity
 // ──────────────────────────────────────────────
@@ -673,7 +708,7 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   const relocB = getWillingToRelocate(b);
   const statesKnown = stateAAbout != null && stateBAbout != null;
   const locationPass =
-    !statesKnown || stateAAbout === stateBAbout;
+    !statesKnown || locationsMatch(stateAAbout!, stateBAbout!);
   if (locationPass) passed++;
   const stateCriteriaA = relocA
     ? [`Open to relocating from ${stateAAbout ?? 'their state'}`]
