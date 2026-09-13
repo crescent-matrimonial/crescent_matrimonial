@@ -153,6 +153,14 @@ export function ProfileModal({ person, open, onClose }: ProfileModalProps) {
             </div>
           </div>
 
+          {/* Admin note */}
+          {person.admin_note && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">Admin Note</p>
+              <p className="mt-1 text-sm text-amber-200/90">{person.admin_note}</p>
+            </div>
+          )}
+
           {/* Survey responses */}
           <div className="grid gap-6 md:grid-cols-2">
             <SectionList title="About You" fields={person.about_you} />

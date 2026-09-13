@@ -671,10 +671,9 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   const stateBAbout = getState(b, 'about');
   const relocA = getWillingToRelocate(a);
   const relocB = getWillingToRelocate(b);
+  const statesKnown = stateAAbout != null && stateBAbout != null;
   const locationPass =
-    stateAAbout === stateBAbout ||
-    relocA || relocB ||
-    stateAAbout == null || stateBAbout == null;
+    !statesKnown || stateAAbout === stateBAbout;
   if (locationPass) passed++;
   const stateCriteriaA = relocA
     ? [`Open to relocating from ${stateAAbout ?? 'their state'}`]
@@ -688,7 +687,7 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     'State',
     stateBAbout ? [stateBAbout] : [],
     stateCriteriaA, stateCriteriaB,
-    true, true, false,
+    locationPass, locationPass, false,
   ));
 
   // ── Rule 11: Ethnicity ──
