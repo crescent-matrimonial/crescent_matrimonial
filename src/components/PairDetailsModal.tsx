@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Heart,
   ArrowRightLeft,
+  StickyNote,
 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Avatar } from './Avatar';
@@ -256,6 +257,28 @@ export function PairDetailsModal({
               </span>
             )}
           </div>
+
+          {/* Admin notes */}
+          {(personA.admin_note || personB.admin_note) && (
+            <div className="space-y-2">
+              {personA.admin_note && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+                    <StickyNote className="h-3.5 w-3.5" /> Note from {personA.full_name}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-300">{personA.admin_note}</p>
+                </div>
+              )}
+              {personB.admin_note && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+                    <StickyNote className="h-3.5 w-3.5" /> Note from {personB.full_name}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-300">{personB.admin_note}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Compatibility summary */}
           <div className="flex items-center justify-center gap-3 rounded-lg bg-slate-950/40 px-4 py-2">

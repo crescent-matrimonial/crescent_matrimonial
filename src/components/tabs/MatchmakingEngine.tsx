@@ -889,6 +889,10 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                 )}
               </div>
 
+              {/* Admin notes */}
+              <AdminNote name={candidate.full_name} note={candidate.admin_note} />
+              <AdminNote name={match.full_name} note={match.admin_note} />
+
               {/* Compatibility breakdown */}
               <div>
                 <div className="mb-3 flex items-center gap-2">
@@ -908,16 +912,6 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                   ))}
                 </div>
               </div>
-
-              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 px-4 py-3">
-                <p className="text-xs text-slate-400">
-                  Review the matching criteria above first, then open the complete response comparison below.
-                </p>
-              </div>
-
-              {/* Admin notes */}
-              <AdminNote name={candidate.full_name} note={candidate.admin_note} />
-              <AdminNote name={match.full_name} note={match.admin_note} />
 
               {/* Collapsible: all responses side by side */}
               <AllResponsesSection candidate={candidate} match={match} />
