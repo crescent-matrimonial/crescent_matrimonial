@@ -9,6 +9,7 @@ import { Modal } from './Modal';
 import { Avatar } from './Avatar';
 import { PhotoCarousel } from './PhotoCarousel';
 import { computeCompatibility, sharedHobbies } from '@/lib/matching';
+import { RuleRow } from './ComparisonSearch';
 import type { PersonWithDetails } from '@/lib/types';
 import type { QuestionField } from '@/lib/types';
 
@@ -281,6 +282,26 @@ export function PairDetailsModal({
               ))}
             </div>
           )}
+
+          {/* Compatibility breakdown */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4 text-sky-400" />
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Compatibility Comparison
+              </h4>
+            </div>
+            <div className="space-y-1.5">
+              {result.rows.map((row) => (
+                <RuleRow
+                  key={row.key}
+                  row={row}
+                  personA={personA}
+                  personB={personB}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* Collapsible: all responses side by side */}
           <AllResponsesSection candidate={personA} match={personB} />

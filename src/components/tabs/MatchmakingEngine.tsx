@@ -889,17 +889,33 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                 )}
               </div>
 
-              {sharedHobbies(detailResult.personA, detailResult.personB).length > 0 && (
-                <div className="flex flex-wrap gap-1.5 rounded-lg bg-slate-950/40 px-3 py-2">
-                  <span className="text-xs text-slate-500">Shared hobbies:</span>
-                  {sharedHobbies(detailResult.personA, detailResult.personB).map((h) => (
-                    <span key={h} className="rounded-md bg-sky-500/15 px-2 py-0.5 text-xs text-sky-300">
-                      {h}
-                    </span>
+              {/* Compatibility breakdown */}
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4 text-sky-400" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Compare With Another Candidate
+                  </h4>
+                </div>
+                <div className="space-y-1.5">
+                  {detailResult.rows.map((row) => (
+                    <RuleRow
+                      key={row.key}
+                      row={row}
+                      personA={candidate}
+                      personB={match}
+                    />
                   ))}
                 </div>
-              )}
+              </div>
 
+              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 px-4 py-3">
+                <p className="text-xs text-slate-400">
+                  Review the matching criteria above first, then open the complete response comparison below.
+                </p>
+              </div>
+
+              {/* Admin notes */}
               <AdminNote name={candidate.full_name} note={candidate.admin_note} />
               <AdminNote name={match.full_name} note={match.admin_note} />
 
