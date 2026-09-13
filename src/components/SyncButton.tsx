@@ -22,8 +22,10 @@ export function SyncButton() {
       );
       setTimeout(() => setState('idle'), 4000);
     } catch (e) {
+      // Keep the technical detail in the console only; never render it.
+      console.error('Sync failed:', e);
       setState('error');
-      setMessage(e instanceof Error ? e.message : 'Sync failed');
+      setMessage("Sync couldn't be completed. Please try again.");
     }
   };
 

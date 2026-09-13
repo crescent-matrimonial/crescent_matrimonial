@@ -10,7 +10,16 @@ import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, hasConfiguredKey, resetSupabaseClient } from './supabaseClient';
 
 const ADMIN_EMAIL = 'crescentmatrimonial@gmail.com';
-const AUTH_REQUIRED_KEY = 'crescent_auth_required';
+const LEGACY_AUTH_REQUIRED_KEY = 'crescent_auth_required';
+
+// Sign-in is always required. A previous version allowed this to be switched
+// off from a value held in the browser, which any visitor could set. Remove any
+// leftover value so it can never be read again.
+try {
+  localStorage.removeItem(LEGACY_AUTH_REQUIRED_KEY);
+} catch {
+  /* ignore unavailable storage */
+}
 
 type AuthState =
   | { status: 'loading' }
@@ -24,30 +33,14 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshKeyState: () => void;
-  authRequired: boolean;
-  setAuthRequired: (required: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading' });
-  const [authRequired, setAuthRequired] = useState(() => {
-    const stored = localStorage.getItem(AUTH_REQUIRED_KEY);
-    return stored ? JSON.parse(stored) : true;
-  });
 
   useEffect(() => {
-    localStorage.setItem(AUTH_REQUIRED_KEY, JSON.stringify(authRequired));
-  }, [authRequired]);
-
-  useEffect(() => {
-    // If auth is not required, skip authentication check
-    if (!authRequired) {
-      setState({ status: 'authenticated', user: null as any, session: null as any });
-      return;
-    }
-
     if (!hasConfiguredKey()) {
       setState({ status: 'needs_key' });
       return;
@@ -89,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       sub.subscription.unsubscribe();
     };
-  }, [authRequired]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -121,10 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setState({ status: 'unauthenticated' });
         }
       },
-      authRequired,
-      setAuthRequired,
     }),
-    [state, authRequired],
+    [state],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

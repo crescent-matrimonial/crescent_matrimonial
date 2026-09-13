@@ -145,7 +145,9 @@ export function CandidatesDirectory({ onGoToEngine }: { onGoToEngine: (personId:
     try {
       await seedSampleData();
     } catch (e) {
-      setSeedError(e instanceof Error ? e.message : 'Failed to load sample data');
+      // Keep the technical detail in the console only; never render it.
+      console.error('Sample data load failed:', e);
+      setSeedError('Sample data could not be loaded. Please try again.');
     } finally {
       setSeeding(false);
     }

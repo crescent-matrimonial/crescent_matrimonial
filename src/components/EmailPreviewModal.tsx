@@ -42,7 +42,23 @@ Warm regards,
 Crescent Matrimonial Team`;
 }
 
-function buildHtmlBody(recipientName: string, partnerName: string): string {
+/**
+ * Escape a value before it is interpolated into the HTML email body.
+ * Candidate names come from a public Google Form, so they are untrusted and
+ * must never be able to inject markup or links into an outgoing message.
+ */
+function escapeHtml(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildHtmlBody(rawRecipientName: string, rawPartnerName: string): string {
+  const recipientName = escapeHtml(rawRecipientName);
+  const partnerName = escapeHtml(rawPartnerName);
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -158,8 +174,10 @@ export function EmailPreviewModal({ open, onClose, recipient, partner }: EmailPr
 
       setSendStatus('success');
     } catch (err) {
+      // Keep the technical detail in the console only; never render it.
+      console.error('Send failed:', err);
       setSendStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to send email');
+      setErrorMsg('The email could not be sent. Please try again.');
     }
   };
 

@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth';
 export function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [draft, setDraft] = useState<DashboardSettings>(() => readSettings());
   const [saved, setSaved] = useState(false);
-  const { refreshKeyState, authRequired, setAuthRequired } = useAuth();
+  const { refreshKeyState } = useAuth();
 
   const save = () => {
     writeSettings(draft);
@@ -22,31 +22,6 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <Modal open={open} onClose={onClose} title="Configuration" maxWidth="max-w-lg">
       <div className="space-y-5">
-        <div>
-          <label className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-300">Require Sign-In</span>
-            <button
-              onClick={() => setAuthRequired(!authRequired)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                authRequired ? 'bg-sky-600' : 'bg-slate-700'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                  authRequired ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </label>
-          <p className="text-xs text-slate-500">
-            {authRequired
-              ? 'Users must sign in with their email to access the dashboard.'
-              : 'Dashboard is accessible without sign-in.'}
-          </p>
-        </div>
-
-        <div className="border-t border-slate-700" />
-
         <div className="flex items-start gap-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3 text-sm text-sky-200">
           <Settings className="mt-0.5 h-5 w-5 shrink-0 text-sky-400" />
           <p>

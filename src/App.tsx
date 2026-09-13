@@ -24,7 +24,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
 ];
 
 function Header() {
-  const { signOut, authRequired } = useAuth();
+  const { signOut } = useAuth();
   const { useMock, people, matches } = useData();
   const activePending = matches.filter((m) => m.outcome === 'pending').length;
 
@@ -53,15 +53,13 @@ function Header() {
             {people.filter((p) => !p.is_deleted).length} candidates · {activePending} active
           </span>
           <SyncButton />
-          {authRequired && (
-            <button
-              onClick={signOut}
-              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-slate-100"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          )}
+          <button
+            onClick={signOut}
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-slate-100"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </header>
@@ -126,18 +124,9 @@ function Dashboard() {
 }
 
 function Gate() {
-  const { state, authRequired } = useAuth();
+  const { state } = useAuth();
 
-  // If auth is not required, always show dashboard
-  if (!authRequired) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <Dashboard />
-      </div>
-    );
-  }
-
-  // If auth is required, enforce authentication
+  // Sign-in is always enforced; there is no way to turn this off from the browser.
   if (state.status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">

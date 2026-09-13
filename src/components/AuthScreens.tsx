@@ -1,5 +1,5 @@
 import { Chrome, ShieldCheck } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, ADMIN_EMAIL } from '@/lib/auth';
 
 export function LoginScreen() {
   const { state, signInWithGoogle } = useAuth();

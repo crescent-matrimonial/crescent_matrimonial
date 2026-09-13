@@ -283,22 +283,6 @@ export function ActivePairings() {
                   )}
                 </div>
 
-                {/* Email buttons */}
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setEmailTarget({ recipient: p1, partner: p2 })}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-500/30 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-500/10"
-                  >
-                    <Mail className="h-3.5 w-3.5" /> Email {p1.full_name.split(' ')[0]}
-                  </button>
-                  <button
-                    onClick={() => setEmailTarget({ recipient: p2, partner: p1 })}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-500/30 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-500/10"
-                  >
-                    <Mail className="h-3.5 w-3.5" /> Email {p2.full_name.split(' ')[0]}
-                  </button>
-                </div>
-
                 {/* Action buttons */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
