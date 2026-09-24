@@ -1,0 +1,4 @@
+
+DROP TABLE IF EXISTS public.dismissed_pairs CASCADE;
+DROP TABLE IF EXISTS public.matches CASCADE;
+DROP TABLE IF EXISTS public.people CASCADE;

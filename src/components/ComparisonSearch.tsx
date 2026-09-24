@@ -1,0 +1,444 @@
+import { useMemo, useState } from 'react';
+import { Search, Check, X, ArrowRightLeft, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Avatar } from './Avatar';
+import { computeCompatibility } from '@/lib/matching';
+import { useData } from '@/lib/data';
+import type { PersonWithDetails, CompatibilityRow } from '@/lib/types';
+
+function getCountryOfEthnicity(person: PersonWithDetails): string | null {
+  const field = Object.values(person.about_you).find((f) => /country.*ethnicity/i.test(f.question));
+  if (field && field.answer.trim()) return field.answer.trim();
+  return null;
+}
+
+function getStateOfResidence(person: PersonWithDetails): string | null {
+  const field = Object.values(person.about_you).find((f) => /state.*reside|state.*live/i.test(f.question));
+  if (field && field.answer.trim()) return field.answer.trim();
+  return null;
+}
+
+interface ComparisonSearchProps {
+  person: PersonWithDetails;
+}
+
+function StatusIcon({ pass }: { pass: boolean }) {
+  return pass ? (
+    <span className="inline-flex items-center justify-center rounded-full bg-emerald-500/15 p-0.5">
+      <Check className="h-3.5 w-3.5 text-emerald-400" />
+    </span>
+  ) : (
+    <span className="inline-flex items-center justify-center rounded-full bg-rose-500/15 p-0.5">
+      <X className="h-3.5 w-3.5 text-rose-400" />
+    </span>
+  );
+}
+
+export function RuleRow({
+  row,
+  personA,
+  personB,
+}: {
+  row: CompatibilityRow;
+  personA: PersonWithDetails;
+  personB: PersonWithDetails;
+}) {
+  const bothPass = row.aMatchesB && row.bMatchesA;
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className={`rounded-lg border ${
+        bothPass
+          ? 'border-emerald-500/20 bg-emerald-500/5'
+          : 'border-rose-500/20 bg-rose-500/5'
+      }`}
+    >
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+      >
+        <StatusIcon pass={bothPass} />
+        <span className="flex-1 text-sm font-medium text-slate-200">
+          {row.questionA}
+        </span>
+        {!bothPass && (
+          <span className="text-xs text-rose-300">
+            {!row.aMatchesB && !row.bMatchesA
+              ? 'Neither direction'
+              : !row.aMatchesB
+                ? `${personB.full_name} → ${personA.full_name} only`
+                : `${personA.full_name} → ${personB.full_name} only`}
+          </span>
+        )}
+        <span className="text-xs text-slate-500">{open ? 'Hide' : 'Details'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-slate-700/40 px-3 py-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Person A side */}
+            <div className="space-y-2">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {personA.full_name}'s Answer
+                </p>
+                <div className="rounded-md bg-slate-950/40 px-2.5 py-2 text-xs text-slate-300">
+                  {row.answerA.length > 0 ? (
+                    row.multi && row.answerA.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.answerA.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.answerA.join(', ')
+                    )
+                  ) : (
+                    <span className="text-slate-600">—</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-sky-400/70">
+                  What {personA.full_name} is Looking For
+                </p>
+                <div className="rounded-md bg-sky-950/20 px-2.5 py-2 text-xs text-slate-300 ring-1 ring-sky-500/10">
+                  {row.criteriaA.length > 0 ? (
+                    row.multi && row.criteriaB.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.criteriaA.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.criteriaA.join(', ')
+                    )
+                  ) : (
+                    <span className="text-slate-600">No specific preference</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Person B side */}
+            <div className="space-y-2">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {personB.full_name}'s Answer
+                </p>
+                <div className="rounded-md bg-slate-950/40 px-2.5 py-2 text-xs text-slate-300">
+                  {row.answerB.length > 0 ? (
+                    row.multi && row.answerB.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.answerB.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.answerB.join(', ')
+                    )
+                  ) : (
+                    <span className="text-slate-600">—</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-sky-400/70">
+                  What {personB.full_name} is Looking For
+                </p>
+                <div className="rounded-md bg-sky-950/20 px-2.5 py-2 text-xs text-slate-300 ring-1 ring-sky-500/10">
+                  {row.criteriaB.length > 0 ? (
+                    row.multi && row.criteriaA.length > 1 ? (
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {row.criteriaB.map((v) => (
+                          <li key={v}>{v}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      row.criteriaB.join(', ')
+                    )
+                  ) : (
+                    <span className="text-slate-600">No specific preference</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface CloseMatchEntry {
+  person: PersonWithDetails;
+  score: number;
+  passed: number;
+  total: number;
+}
+
+function CloseMatchesList({
+  matches,
+  onSelect,
+}: {
+  matches: CloseMatchEntry[];
+  onSelect: (p: PersonWithDetails) => void;
+}) {
+  if (matches.length === 0) {
+    return (
+      <p className="py-4 text-center text-xs text-slate-500">
+        No close matches found above 80% compatibility.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+      {matches.map((m) => (
+        <button
+          key={m.person.id}
+          onClick={() => onSelect(m.person)}
+          className="flex w-full items-center gap-2.5 rounded-lg border border-slate-700/50 bg-slate-950/40 px-3 py-2 text-left transition hover:border-sky-500/40 hover:bg-slate-800/40"
+        >
+          <Avatar person={m.person} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm text-slate-200">{m.person.full_name}</p>
+            <p className="truncate text-xs text-slate-500">
+              {m.person.age != null && `${m.person.age} • `}
+              {m.person.location ?? 'Location unknown'}
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className={`text-sm font-bold ${
+              m.score === 100
+                ? 'text-emerald-400'
+                : m.score >= 90
+                  ? 'text-amber-400'
+                  : 'text-orange-400'
+            }`}>
+              {m.score}%
+            </p>
+            <p className="text-[10px] text-slate-500">
+              {m.passed}/{m.total}
+            </p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export { CloseMatchesList };
+export type { CloseMatchEntry };
+
+export function ComparisonSearch({ person }: ComparisonSearchProps) {
+  const { people, matches, dismissedPairs } = useData();
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<PersonWithDetails | null>(null);
+  const [showCloseMatches, setShowCloseMatches] = useState(false);
+
+  const oppositeGender = person.gender === 'male' ? 'female' : 'male';
+
+  const searchResults = useMemo(() => {
+    if (!query.trim()) return [];
+    const q = query.trim().toLowerCase();
+    return people
+      .filter(
+        (p) =>
+          p.id !== person.id &&
+          p.gender === oppositeGender &&
+          !p.is_deleted &&
+          p.full_name.toLowerCase().includes(q),
+      )
+      .slice(0, 6);
+  }, [query, people, person.id, oppositeGender]);
+
+  const closeMatches = useMemo(() => {
+    if (!showCloseMatches) return [];
+    const pairKey = (x: string, y: string) => [x, y].sort().join('|');
+    const blocked = new Set<string>([
+      ...matches
+        .filter((m) => m.outcome === 'failed' || m.outcome === 'manually_removed')
+        .map((m) => pairKey(m.person_1_id, m.person_2_id)),
+      ...dismissedPairs.map(([x, y]) => pairKey(x, y)),
+    ]);
+    const candidates = people.filter(
+      (p) =>
+        p.id !== person.id &&
+        p.gender === oppositeGender &&
+        !p.is_deleted &&
+        !blocked.has(pairKey(person.id, p.id)),
+    );
+    const scored: CloseMatchEntry[] = [];
+    for (const c of candidates) {
+      const r = computeCompatibility(person, c);
+      if (r.score >= 80) {
+        scored.push({ person: c, score: r.score, passed: r.passed, total: r.total });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored;
+  }, [showCloseMatches, people, person, oppositeGender, matches, dismissedPairs]);
+
+  const result = useMemo(() => {
+    if (!selected) return null;
+    return computeCompatibility(person, selected);
+  }, [person, selected]);
+
+  return (
+    <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <ArrowRightLeft className="h-4 w-4 text-sky-400" />
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Compare With Another Candidate
+        </h4>
+      </div>
+
+      {!selected ? (
+        <>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search for a ${oppositeGender === 'female' ? 'sister' : 'brother'} by name...`}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2.5 pl-10 pr-4 text-sm text-slate-100 outline-none transition focus:border-sky-500"
+            />
+          </div>
+          {searchResults.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {searchResults.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setSelected(p);
+                    setQuery('');
+                    setShowCloseMatches(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg border border-slate-700/50 bg-slate-950/40 px-3 py-2 text-left transition hover:border-sky-500/40 hover:bg-slate-800/40"
+                >
+                  <Avatar person={p} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-slate-200">{p.full_name}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {p.age != null && `${p.age} • `}
+                      {getCountryOfEthnicity(p) ?? ''}{getCountryOfEthnicity(p) ? ' • ' : ''}
+                      {getStateOfResidence(p) ?? p.location ?? 'Location unknown'}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {query.trim() && searchResults.length === 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              No {oppositeGender === 'female' ? 'sisters' : 'brothers'} found matching "{query}".
+            </p>
+          )}
+
+          {/* Close matches toggle */}
+          {!query.trim() && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowCloseMatches((v) => !v)}
+                className="flex w-full items-center justify-between rounded-lg border border-slate-700/60 bg-slate-950/40 px-3 py-2.5 text-left transition hover:bg-slate-800/40"
+              >
+                <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                  Close Matches (80%+)
+                </span>
+                <span className="flex items-center gap-1 text-xs text-sky-400">
+                  {showCloseMatches ? (
+                    <>Hide <ChevronUp className="h-3.5 w-3.5" /></>
+                  ) : (
+                    <>Show <ChevronDown className="h-3.5 w-3.5" /></>
+                  )}
+                </span>
+              </button>
+              {showCloseMatches && (
+                <CloseMatchesList
+                  matches={closeMatches}
+                  onSelect={(p) => {
+                    setSelected(p);
+                    setShowCloseMatches(false);
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Selected person header + score */}
+          <div className="flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-950/40 px-3 py-2.5">
+            <Avatar person={selected} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-100">
+                {selected.full_name}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                {selected.age != null && `${selected.age} • `}
+                {getCountryOfEthnicity(selected) ?? ''}{getCountryOfEthnicity(selected) ? ' • ' : ''}
+                {getStateOfResidence(selected) ?? selected.location ?? 'Location unknown'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={`text-lg font-bold ${
+                result?.score === 100
+                  ? 'text-emerald-400'
+                  : (result?.score ?? 0) >= 70
+                    ? 'text-amber-400'
+                    : 'text-rose-400'
+              }`}>
+                {result?.score ?? 0}%
+              </p>
+              <p className="text-xs text-slate-500">
+                {result?.passed ?? 0}/{result?.total ?? 0} rules
+              </p>
+            </div>
+            <button
+              onClick={() => setSelected(null)}
+              className="ml-2 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
+            >
+              Change
+            </button>
+          </div>
+
+          {/* Admin notes for both candidates */}
+          {(person.admin_note || selected.admin_note) && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {person.admin_note && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    {person.full_name}'s Note
+                  </p>
+                  <p className="mt-1 text-sm text-amber-200/90">{person.admin_note}</p>
+                </div>
+              )}
+              {selected.admin_note && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    {selected.full_name}'s Note
+                  </p>
+                  <p className="mt-1 text-sm text-amber-200/90">{selected.admin_note}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Per-rule breakdown */}
+          {result && (
+            <div className="mt-3 space-y-1.5">
+              {result.rows.map((row) => (
+                <RuleRow
+                  key={row.key}
+                  row={row}
+                  personA={person}
+                  personB={selected}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
