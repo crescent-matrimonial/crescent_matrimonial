@@ -384,7 +384,7 @@ function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'):
   const dict = section === 'about' ? profile.about_you : profile.looking_for;
   const fields = Object.values(dict);
   const primary = fields.find(
-    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question) && !/country/i.test(f.question),
+    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question),
   );
   const secondary = fields.find(
     (f) => /secondary.*ethnicity/i.test(f.question),
@@ -402,7 +402,10 @@ function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'):
 }
 
 function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
-  const field = getField(profile, 'about', /country.*ethnicity/i);
+  const dict = profile.about_you;
+  const field = Object.values(dict).find(
+    (f) => /country.*ethnicity/i.test(f.question.toLowerCase()) && !/secondary/i.test(f.question.toLowerCase()),
+  );
   if (field && field.answer.trim()) return field.answer.trim();
   return null;
 }
@@ -424,7 +427,7 @@ function getEthnicityPreference(profile: PersonWithDetails): 'must' | 'any' | 'p
 function getEthnicityPreferenceDisplay(profile: PersonWithDetails): string[] {
   const lookingFields = Object.values(profile.looking_for);
   const field = lookingFields.find(
-    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question) && !/country/i.test(f.question),
+    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question),
   );
   if (!field) return [];
   const raw = field.values.length > 0 ? field.values : (field.answer ? [field.answer] : []);
