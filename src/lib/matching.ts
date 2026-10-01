@@ -49,14 +49,20 @@ function hasOverlap(a: string[], b: string[]): boolean {
 
 /**
  * Map raw option strings to canonical keys using a lookup table.
- * Each entry: [canonicalKey, [list of substrings that map to it]].
+ * Each entry: [canonicalKey, [include patterns], [exclude patterns]?].
+ * A value matches an entry if it includes any include pattern AND does not
+ * include any exclude pattern. This prevents e.g. "wear a hijab" from matching
+ * "don't wear a hijab".
  */
-function canonicalize(raw: string[], mappings: Array<[string, string[]]>): Set<string> {
+type CanonicalMapping = [string, string[], string[]?];
+
+function canonicalize(raw: string[], mappings: CanonicalMapping[]): Set<string> {
   const result = new Set<string>();
   for (const val of raw) {
     const v = normalizeStr(val.toLowerCase());
-    for (const [key, patterns] of mappings) {
+    for (const [key, patterns, excludes] of mappings) {
       if (patterns.some((p) => v.includes(p))) {
+        if (excludes && excludes.some((e) => v.includes(e))) continue;
         result.add(key);
       }
     }
@@ -67,7 +73,7 @@ function canonicalize(raw: string[], mappings: Array<[string, string[]]>): Set<s
 function hasCanonicalOverlap(
   aRaw: string[],
   bRaw: string[],
-  mappings: Array<[string, string[]]>,
+  mappings: CanonicalMapping[],
 ): boolean {
   const aSet = canonicalize(aRaw, mappings);
   const bSet = canonicalize(bRaw, mappings);
@@ -195,7 +201,7 @@ function getCandidateHeight(profile: PersonWithDetails): number | null {
 //  Rule 3: Past Marital Status
 // ──────────────────────────────────────────────
 
-const MARITAL_MAPPINGS: Array<[string, string[]]> = [
+const MARITAL_MAPPINGS: CanonicalMapping[] = [
   ['never_no_kids', ['never married and have no kids', 'never married and has no kids']],
   ['married_no_kids', ['married in the past but have no kids', 'married in the past but has no kids']],
   ['married_has_kids', ['married in the past and have kids', 'married in the past and has kids']],
@@ -210,7 +216,7 @@ const MARITAL_MAPPINGS: Array<[string, string[]]> = [
  * Sister "Seeking in a Husband" employment status.
  * Also used symmetrically for sister about → brother seeking (employment status).
  */
-const EMPLOYMENT_STATUS_MAPPINGS: Array<[string, string[]]> = [
+const EMPLOYMENT_STATUS_MAPPINGS: CanonicalMapping[] = [
   ['working_full_time', ['working full time', 'working full-time']],
   ['working_part_time', ['working part time', 'working part-time']],
   ['unemployed_looking', ['unemployed but looking', 'currently unemployed']],
@@ -222,7 +228,7 @@ const EMPLOYMENT_STATUS_MAPPINGS: Array<[string, string[]]> = [
  * Sister "About You" post-marriage employment plans matched against
  * Brother "Seeking in a Wife" post-marriage employment.
  */
-const POST_MARRIAGE_EMPLOYMENT_MAPPINGS: Array<[string, string[]]> = [
+const POST_MARRIAGE_EMPLOYMENT_MAPPINGS: CanonicalMapping[] = [
   ['does_not_plan_to_work', ["don't plan to work", 'does not plan to work', 'do not plan to work']],
   ['always_full_time', ['always plan to work full-time', 'always plan to work full time', 'always plans to work full-time', 'always plans to work full time']],
   ['always_part_time', ['always plan to work part-time', 'always plan to work part time', 'always plans to work part-time', 'always plans to work part time']],
@@ -235,7 +241,7 @@ const POST_MARRIAGE_EMPLOYMENT_MAPPINGS: Array<[string, string[]]> = [
 //  Rule 5: Prayer Habits
 // ──────────────────────────────────────────────
 
-const PRAYER_MAPPINGS: Array<[string, string[]]> = [
+const PRAYER_MAPPINGS: CanonicalMapping[] = [
   ['prays_5', ['pray 5 times a day', 'prays 5 times a day']],
   ['trying_best', ['trying my best to pray 5 times daily but occasionally miss', 'trying his best to pray 5 times daily but occasionally misses', 'trying her best to pray 5 times daily but occasionally misses', 'trying best to pray 5 times daily']],
   ['some_prayers', ['pray some prayers daily but not usually all 5', 'prays some prayers daily but not usually all 5']],
@@ -247,10 +253,10 @@ const PRAYER_MAPPINGS: Array<[string, string[]]> = [
 //  Rule 6: Hijab
 // ──────────────────────────────────────────────
 
-const HIJAB_MAPPINGS: Array<[string, string[]]> = [
-  ['wears_hijab', ['wear a hijab', 'wears a hijab']],
-  ['wears_niqab', ['wear a niqab', 'wears a niqab']],
-  ['no_hijab', ["don't wear a hijab", "doesn't wear a hijab", 'dont wear a hijab', 'doesnt wear a hijab']],
+const HIJAB_MAPPINGS: CanonicalMapping[] = [
+  ['wears_hijab', ['wear a hijab', 'wears a hijab'], ['don\'t', 'doesn\'t', 'dont', 'doesnt', 'working towards']],
+  ['wears_niqab', ['wear a niqab', 'wears a niqab'], ['don\'t', 'doesn\'t', 'dont', 'doesnt']],
+  ['no_hijab', ["don't wear a hijab", "doesn't wear a hijab", 'dont wear a hijab', 'doesnt wear a hijab'], ['working towards']],
   ['working_towards', ["don't wear a hijab but am working towards it", "doesn't wear a hijab but is working towards it", "don't wear a hijab but is working towards it"]],
 ];
 
@@ -258,7 +264,7 @@ const HIJAB_MAPPINGS: Array<[string, string[]]> = [
 //  Rule 7: Islamic Atmosphere
 // ──────────────────────────────────────────────
 
-const ATMOSPHERE_MAPPINGS: Array<[string, string[]]> = [
+const ATMOSPHERE_MAPPINGS: CanonicalMapping[] = [
   ['events_sometimes', [
     'attend islamic events/classes and listen to lectures sometimes',
     'attends islamic events/classes and listen to lectures sometimes',
@@ -295,7 +301,7 @@ const ATMOSPHERE_MAPPINGS: Array<[string, string[]]> = [
 //  Rule 8: Halal Food
 // ──────────────────────────────────────────────
 
-const HALAL_MAPPINGS: Array<[string, string[]]> = [
+const HALAL_MAPPINGS: CanonicalMapping[] = [
   ['halal_label', ['require a halal label or need to be told it is halal', 'requires a halal label or needs to be told it is halal']],
   ['hand_slaughtered', ['need to at least be told that the meat is hand-slaughtered', 'needs to at least be told that the meat is hand-slaughtered']],
   ['certified_zabiha', ['certified zabiha by a trusted group', 'requires food to be certified zabiha by a trusted group']],
@@ -306,7 +312,7 @@ const HALAL_MAPPINGS: Array<[string, string[]]> = [
 //  Rule 9: Islamic Affiliation
 // ──────────────────────────────────────────────
 
-const AFFILIATION_MAPPINGS: Array<[string, string[]]> = [
+const AFFILIATION_MAPPINGS: CanonicalMapping[] = [
   ['hanafi', ['hanafi']],
   ['maliki', ['maliki']],
   ['shafi', ['shafi']],
@@ -449,7 +455,7 @@ function checkEthnicityDirection(
 //  Rule 12: Symmetric (about ↔ about)
 // ──────────────────────────────────────────────
 
-const LIVING_SITUATION_MAPPINGS: Array<[string, string[]]> = [
+const LIVING_SITUATION_MAPPINGS: CanonicalMapping[] = [
   ['separate_from_parents', ['live separately from parents']],
   ['separate_then_parents_move_in', [
     'live separately initially and then my parents will move in',
@@ -464,7 +470,7 @@ const LIVING_SITUATION_MAPPINGS: Array<[string, string[]]> = [
   ['live_with_wife_parents', ["live with my wife's parents"]],
 ];
 
-const FINANCIAL_ROLES_MAPPINGS: Array<[string, string[]]> = [
+const FINANCIAL_ROLES_MAPPINGS: CanonicalMapping[] = [
   ['equal_share', ['both equally share housework and financial responsibilities']],
   ['husband_provider', [
     'husband provides all finances and wife will take care of home',
