@@ -15,6 +15,13 @@ function getStateOfResidence(person: PersonWithDetails): string | null {
   return null;
 }
 
+function getCountryOfEthnicity(person: PersonWithDetails): string | null {
+  const dict = person.about_you;
+  const field = Object.values(dict).find((f) => /country.*ethnicity/i.test(f.question.toLowerCase()));
+  if (field && field.answer.trim()) return field.answer.trim();
+  return null;
+}
+
 interface ProfileModalProps {
   person: PersonWithDetails | null;
   open: boolean;
@@ -107,9 +114,15 @@ export function ProfileModal({ person, open, onClose }: ProfileModalProps) {
                   <p className="text-sm text-slate-400">{person.email}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
                     {person.age != null && <span>{person.age} yrs</span>}
-                    {getStateOfResidence(person) && (
+                    {getCountryOfEthnicity(person) && (
                       <span className="flex items-center gap-x-1.5">
                         {person.age != null && <span className="text-slate-700">•</span>}
+                        {getCountryOfEthnicity(person)}
+                      </span>
+                    )}
+                    {getStateOfResidence(person) && (
+                      <span className="flex items-center gap-x-1.5">
+                        <span className="text-slate-700">•</span>
                         {getStateOfResidence(person)}
                       </span>
                     )}

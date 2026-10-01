@@ -202,7 +202,8 @@ function CloseMatchesList({
             <p className="truncate text-sm text-slate-200">{m.person.full_name}</p>
             <p className="truncate text-xs text-slate-500">
               {m.person.age != null && `${m.person.age} • `}
-              {m.person.location ?? 'Location unknown'}
+              {getCountryOfEthnicity(m.person) ?? ''}{getCountryOfEthnicity(m.person) ? ' • ' : ''}
+              {getStateOfResidence(m.person) ?? m.person.location ?? 'Location unknown'}
             </p>
           </div>
           <div className="text-right shrink-0">
