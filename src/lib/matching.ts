@@ -403,9 +403,7 @@ function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'):
 
 function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
   const dict = profile.about_you;
-  const field = Object.values(dict).find(
-    (f) => /country.*ethnicity/i.test(f.question.toLowerCase()) && !/secondary/i.test(f.question.toLowerCase()),
-  );
+  const field = Object.values(dict).find((f) => /country.*ethnicity/i.test(f.question.toLowerCase()));
   if (field && field.answer.trim()) return field.answer.trim();
   return null;
 }
@@ -751,12 +749,10 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   const bPassEth = checkEthnicityDirection(b, a);
   const ethPass = aPassEth && bPassEth;
   if (ethPass) passed++;
-  const ethA = getEthnicity(a, 'about');
-  const ethB = getEthnicity(b, 'about');
   const countryA = getCountryOfEthnicity(a);
   const countryB = getCountryOfEthnicity(b);
-  const ethDisplayA = countryA ? [countryA, ...ethA.filter((v) => v.toLowerCase() !== countryA.toLowerCase())] : ethA;
-  const ethDisplayB = countryB ? [countryB, ...ethB.filter((v) => v.toLowerCase() !== countryB.toLowerCase())] : ethB;
+  const ethDisplayA = countryA ? [countryA] : [];
+  const ethDisplayB = countryB ? [countryB] : [];
   const ethPrefA = getEthnicityPreferenceDisplay(a);
   const ethPrefB = getEthnicityPreferenceDisplay(b);
   rows.push(makeRow(
