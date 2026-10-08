@@ -269,7 +269,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         totalInserted++;
       }
-      await refresh(profiles, true);
+      await refresh(profiles);
       return totalInserted + totalFixed;
     },
     [useMock, refresh],
