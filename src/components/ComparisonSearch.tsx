@@ -6,8 +6,12 @@ import { useData } from '@/lib/data';
 import type { PersonWithDetails, CompatibilityRow } from '@/lib/types';
 
 function getCountryOfEthnicity(person: PersonWithDetails): string | null {
-  const field = Object.values(person.about_you).find((f) => /country.*ethnicity/i.test(f.question));
-  if (field && field.answer.trim()) return field.answer.trim();
+  const field = Object.values(person.about_you).find(
+    (f) => /country.*ethnicity/i.test(f.question) && !/secondary|preference/i.test(f.question),
+  );
+  if (!field) return null;
+  const raw = field.values.length > 0 ? field.values[0] : field.answer;
+  if (raw && raw.trim()) return raw.trim();
   return null;
 }
 

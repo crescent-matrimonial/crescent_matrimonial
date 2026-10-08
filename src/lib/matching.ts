@@ -382,7 +382,10 @@ function locationsMatch(a: string, b: string): boolean {
 
 function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
   const dict = profile.about_you;
-  const field = Object.values(dict).find((f) => /country.*ethnicity/i.test(f.question.toLowerCase()));
+  const field = Object.values(dict).find(
+    (f) => /country.*ethnicity/i.test(f.question.toLowerCase())
+      && !/secondary|preference/i.test(f.question.toLowerCase()),
+  );
   if (!field) return null;
   const raw = field.values.length > 0
     ? field.values[0]
