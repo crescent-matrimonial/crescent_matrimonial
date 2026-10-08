@@ -380,27 +380,6 @@ function locationsMatch(a: string, b: string): boolean {
 //  Rule 11: Ethnicity
 // ──────────────────────────────────────────────
 
-function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'): string[] {
-  const dict = section === 'about' ? profile.about_you : profile.looking_for;
-  const fields = Object.values(dict);
-  const primary = fields.find(
-    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question),
-  );
-  const secondary = fields.find(
-    (f) => /secondary.*ethnicity/i.test(f.question),
-  );
-  const result: string[] = [];
-  if (primary) {
-    const vals = primary.values.length > 0 ? primary.values : (primary.answer ? [primary.answer] : []);
-    result.push(...vals.map((v) => v.trim()).filter(Boolean));
-  }
-  if (secondary) {
-    const vals = secondary.values.length > 0 ? secondary.values : (secondary.answer ? [secondary.answer] : []);
-    result.push(...vals.map((v) => v.trim()).filter(Boolean));
-  }
-  return result;
-}
-
 function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
   const dict = profile.about_you;
   const field = Object.values(dict).find((f) => /country.*ethnicity/i.test(f.question.toLowerCase()));
@@ -410,53 +389,6 @@ function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
     : field.answer;
   if (raw && raw.trim()) return raw.trim();
   return null;
-}
-
-function getEthnicityPreference(profile: PersonWithDetails): 'must' | 'any' | 'prefer' | null {
-  // The preference is in the "looking" section's "Wife's/Husband's Country of Ethnicity" field
-  const field = getField(profile, 'looking', /country.*ethnicity/i);
-  if (!field) return null;
-  const raw = field.values.length > 0
-    ? field.values.join(' ')
-    : field.answer;
-  const v = normalizeStr(raw.toLowerCase());
-  if (/must.*my.*country|must.*from.*my/i.test(v)) return 'must';
-  if (/any.*country.*ethnicity|okay.*any/i.test(v)) {
-    if (/prefer/i.test(v)) return 'prefer';
-    return 'any';
-  }
-  // If the answer contains actual country names, treat as 'any'
-  return 'any';
-}
-
-function getEthnicityPreferenceDisplay(profile: PersonWithDetails): string[] {
-  const lookingFields = Object.values(profile.looking_for);
-  const field = lookingFields.find(
-    (f) => /ethnicity/i.test(f.question) && !/secondary/i.test(f.question),
-  );
-  if (!field) return [];
-  const raw = field.values.length > 0 ? field.values : (field.answer ? [field.answer] : []);
-  return raw.map((v) => v.trim()).filter(Boolean);
-}
-
-function checkEthnicityDirection(
-  seeker: PersonWithDetails,
-  target: PersonWithDetails,
-): boolean {
-  const pref = getEthnicityPreference(seeker);
-  if (pref === 'any' || pref === 'prefer') return true;
-  if (pref === 'must') {
-    const seekerCountry = getCountryOfEthnicity(seeker);
-    const targetCountry = getCountryOfEthnicity(target);
-    if (seekerCountry && targetCountry) {
-      return normalizeStr(seekerCountry.toLowerCase()) === normalizeStr(targetCountry.toLowerCase());
-    }
-    const seekerEth = getEthnicity(seeker, 'about');
-    const targetEth = getEthnicity(target, 'about');
-    if (seekerEth.length === 0 || targetEth.length === 0) return true;
-    return hasOverlap(seekerEth, targetEth);
-  }
-  return true;
 }
 
 // ──────────────────────────────────────────────
@@ -750,23 +682,20 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     locationPass, locationPass, false,
   ));
 
-  // ── Rule 11: Ethnicity ──
+  // ── Rule 11: Country of Ethnicity (exact match) ──
   total++;
-  const aPassEth = checkEthnicityDirection(a, b);
-  const bPassEth = checkEthnicityDirection(b, a);
-  const ethPass = aPassEth && bPassEth;
-  if (ethPass) passed++;
   const countryA = getCountryOfEthnicity(a);
   const countryB = getCountryOfEthnicity(b);
-  const ethDisplayA = countryA ? [countryA] : [];
-  const ethDisplayB = countryB ? [countryB] : [];
-  const ethPrefA = getEthnicityPreferenceDisplay(a);
-  const ethPrefB = getEthnicityPreferenceDisplay(b);
+  const ethPass =
+    countryA != null &&
+    countryB != null &&
+    normalizeStr(countryA.toLowerCase()) === normalizeStr(countryB.toLowerCase());
+  if (ethPass) passed++;
   rows.push(makeRow(
     'ethnicity', 'Country of Ethnicity',
-    ethDisplayA, 'Country of Ethnicity', ethDisplayB,
-    ethPrefA, ethPrefB,
-    aPassEth, bPassEth, true,
+    countryA ? [countryA] : [], 'Country of Ethnicity', countryB ? [countryB] : [],
+    countryA ? [countryA] : [], countryB ? [countryB] : [],
+    ethPass, ethPass, false,
   ));
 
   // ── Rule 12a: Living Situation (symmetric about↔about) ──
@@ -822,15 +751,6 @@ function getSharedHobbies(a: PersonWithDetails, b: PersonWithDetails): string[] 
   return hobbiesA.filter((h) => setB.has(h));
 }
 
-function ethnicityPreferTier(a: PersonWithDetails, b: PersonWithDetails): boolean {
-  const ethPrefA = getEthnicityPreference(a);
-  const ethPrefB = getEthnicityPreference(b);
-  if (ethPrefA !== 'prefer' && ethPrefB !== 'prefer') return false;
-  const ethA = getEthnicity(a, 'about');
-  const ethB = getEthnicity(b, 'about');
-  return hasOverlap(ethA, ethB);
-}
-
 // ──────────────────────────────────────────────
 //  Public API
 // ──────────────────────────────────────────────
@@ -861,9 +781,6 @@ export function findPotentialMatches(
     .map((p) => computeCompatibility(candidate, p))
     .filter((r) => r.score === 100)
     .sort((a, b) => {
-      const aPrefer = ethnicityPreferTier(a.personA, a.personB) ? 1 : 0;
-      const bPrefer = ethnicityPreferTier(b.personA, b.personB) ? 1 : 0;
-      if (aPrefer !== bPrefer) return bPrefer - aPrefer;
       const aHobbies = getSharedHobbies(a.personA, a.personB).length;
       const bHobbies = getSharedHobbies(b.personA, b.personB).length;
       return bHobbies - aHobbies;
@@ -906,10 +823,6 @@ export function countPotentialMatchesAlreadyPaired(
 
 export function sharedHobbies(a: PersonWithDetails, b: PersonWithDetails): string[] {
   return getSharedHobbies(a, b);
-}
-
-export function hasPreferredEthnicity(a: PersonWithDetails, b: PersonWithDetails): boolean {
-  return ethnicityPreferTier(a, b);
 }
 
 export { slug };

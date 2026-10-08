@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Star, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus, Mail } from 'lucide-react';
+import { Heart, X, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp, Users, RotateCcw, StickyNote, ExternalLink, HeartHandshake, Unplug, XCircle, Search, UserPlus, Mail } from 'lucide-react';
 import type { Match } from '@/lib/types';
 import { useData } from '@/lib/data';
 import { Avatar } from '@/components/Avatar';
 import { Modal } from '@/components/Modal';
 import { PhotoCarousel } from '@/components/PhotoCarousel';
-import { findPotentialMatches, countPotentialMatches, countPotentialMatchesAlreadyPaired, sharedHobbies, hasPreferredEthnicity, hasWorkedOut, computeCompatibility } from '@/lib/matching';
+import { findPotentialMatches, countPotentialMatches, countPotentialMatchesAlreadyPaired, sharedHobbies, hasWorkedOut, computeCompatibility } from '@/lib/matching';
 import type { CompatibilityResult, PersonWithDetails, QuestionField } from '@/lib/types';
 import { RuleRow, CloseMatchesList } from '@/components/ComparisonSearch';
 import type { CloseMatchEntry } from '@/components/ComparisonSearch';
@@ -220,8 +220,6 @@ function MatchCard({
   const [expanded, setExpanded] = useState(false);
   const match = result.personA.id === candidate.id ? result.personB : result.personA;
   const hobbies = sharedHobbies(result.personA, result.personB);
-  const preferTier = hasPreferredEthnicity(result.personA, result.personB);
-
   return (
     <div className="rounded-xl border border-slate-700/60 bg-slate-900/60 p-4">
       <div className="flex items-center gap-3">
@@ -243,11 +241,6 @@ function MatchCard({
         {matchActive && (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-300 ring-1 ring-emerald-500/30" title="Already in an active pair">
             <HeartHandshake className="h-3 w-3" /> In Active Pair
-          </span>
-        )}
-        {preferTier && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-300 ring-1 ring-amber-500/30">
-            <Star className="h-3 w-3" /> Preferred Ethnicity
           </span>
         )}
         {hobbies.length > 0 && (
@@ -387,9 +380,6 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
       return !isInActivePair(other.id, matches);
     });
     return available.sort((a, b) => {
-      const aPrefer = hasPreferredEthnicity(a.personA, a.personB) ? 1 : 0;
-      const bPrefer = hasPreferredEthnicity(b.personA, b.personB) ? 1 : 0;
-      if (aPrefer !== bPrefer) return bPrefer - aPrefer;
       const aHobbies = sharedHobbies(a.personA, a.personB).length;
       const bHobbies = sharedHobbies(b.personA, b.personB).length;
       return bHobbies - aHobbies;
@@ -634,7 +624,7 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-slate-400">
                   Showing <span className="text-slate-200">{results.length}</span> valid
-                  matches, ranked by ethnicity preference and shared hobbies.
+                  matches, ranked by shared hobbies.
                 </p>
                 <button
                   onClick={() => {
