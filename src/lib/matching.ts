@@ -404,7 +404,11 @@ function getEthnicity(profile: PersonWithDetails, section: 'about' | 'looking'):
 function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
   const dict = profile.about_you;
   const field = Object.values(dict).find((f) => /country.*ethnicity/i.test(f.question.toLowerCase()));
-  if (field && field.answer.trim()) return field.answer.trim();
+  if (!field) return null;
+  const raw = field.values.length > 0
+    ? field.values[0]
+    : field.answer;
+  if (raw && raw.trim()) return raw.trim();
   return null;
 }
 
@@ -412,7 +416,10 @@ function getEthnicityPreference(profile: PersonWithDetails): 'must' | 'any' | 'p
   // The preference is in the "looking" section's "Wife's/Husband's Country of Ethnicity" field
   const field = getField(profile, 'looking', /country.*ethnicity/i);
   if (!field) return null;
-  const v = normalizeStr(field.answer.toLowerCase());
+  const raw = field.values.length > 0
+    ? field.values.join(' ')
+    : field.answer;
+  const v = normalizeStr(raw.toLowerCase());
   if (/must.*my.*country|must.*from.*my/i.test(v)) return 'must';
   if (/any.*country.*ethnicity|okay.*any/i.test(v)) {
     if (/prefer/i.test(v)) return 'prefer';
