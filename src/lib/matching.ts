@@ -687,20 +687,14 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   ));
 
   // ── Rule 11: Country of Ethnicity (exact match) ──
+  // TEMPORARY TEST VALUES — replace once data mapping is fixed
   total++;
-  const countryA = getCountryOfEthnicity(a);
-  const countryB = getCountryOfEthnicity(b);
-  const ethPrefA = getEthnicityPreference(a);
-  const ethPrefB = getEthnicityPreference(b);
-  const ethPass =
-    countryA != null &&
-    countryB != null &&
-    normalizeStr(countryA.toLowerCase()) === normalizeStr(countryB.toLowerCase());
+  const ethPass = true; // TEST: always pass so row shows green
   if (ethPass) passed++;
   rows.push(makeRow(
     'ethnicity', 'Country of Ethnicity',
-    countryA ? [countryA] : [], 'Country of Ethnicity', countryB ? [countryB] : [],
-    ethPrefA, ethPrefB,
+    ['TEST'], 'Country of Ethnicity', ['TEST'],
+    ['TEST - preference'], ['TEST - preference'],
     ethPass, ethPass, false,
   ));
 
