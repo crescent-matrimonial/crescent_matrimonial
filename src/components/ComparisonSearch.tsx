@@ -65,6 +65,9 @@ export function RuleRow({
         <span className="flex-1 text-sm font-medium text-slate-200">
           {row.questionA}
         </span>
+        <span className="hidden text-xs text-slate-400 sm:inline">
+          {row.answerA.join(', ') || '—'} vs {row.answerB.join(', ') || '—'}
+        </span>
         {!bothPass && (
           <span className="text-xs text-rose-300">
             {!row.aMatchesB && !row.bMatchesA

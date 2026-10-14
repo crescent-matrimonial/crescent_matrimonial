@@ -1,4 +1,4 @@
-import { Chrome, ShieldCheck } from 'lucide-react';
+import { Chrome, Moon } from 'lucide-react';
 import { useAuth, ADMIN_EMAIL } from '@/lib/auth';
 
 export function LoginScreen() {
@@ -10,7 +10,7 @@ export function LoginScreen() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 shadow-lg shadow-sky-900/50">
-            <ShieldCheck className="h-8 w-8 text-white" />
+            <Moon className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-100">Crescent Matrimonial</h1>
           <p className="mt-1 text-sm text-slate-400">Admin Matchmaking Dashboard</p>
@@ -54,7 +54,7 @@ export function AccessDeniedScreen() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-rose-950 via-slate-900 to-slate-950 px-4">
       <div className="w-full max-w-md text-center">
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-600/20 ring-1 ring-rose-500/40">
-          <ShieldCheck className="h-8 w-8 text-rose-400" />
+          <Moon className="h-8 w-8 text-rose-400" />
         </div>
         <h1 className="text-2xl font-bold text-slate-100">Access Denied</h1>
         <p className="mt-2 text-sm text-slate-400">Unauthorized Account</p>
