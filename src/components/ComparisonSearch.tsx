@@ -7,7 +7,7 @@ import type { PersonWithDetails, CompatibilityRow } from '@/lib/types';
 
 function getCountryOfEthnicity(person: PersonWithDetails): string | null {
   const field = Object.values(person.about_you).find(
-    (f) => /country.*ethnicity/i.test(f.question) && !/secondary|preference/i.test(f.question),
+    (f) => /country.*ethnicity/i.test(f.question.toLowerCase()) && !/secondary/i.test(f.question.toLowerCase()),
   );
   if (!field) return null;
   const raw = field.values.length > 0 ? field.values[0] : field.answer;

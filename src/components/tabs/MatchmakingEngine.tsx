@@ -32,7 +32,7 @@ function getActualAge(person: PersonWithDetails): number | null {
 
 function getCountryOfEthnicity(person: PersonWithDetails): string {
   const field = Object.values(person.about_you).find(
-    (f) => /country.*ethnicity/i.test(f.question) && !/secondary|preference/i.test(f.question),
+    (f) => /country.*ethnicity/i.test(f.question.toLowerCase()) && !/secondary/i.test(f.question.toLowerCase()),
   );
   if (!field) return '—';
   const raw = field.values.length > 0 ? field.values[0] : field.answer;

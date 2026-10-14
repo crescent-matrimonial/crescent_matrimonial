@@ -381,17 +381,18 @@ function locationsMatch(a: string, b: string): boolean {
 // ──────────────────────────────────────────────
 
 function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
-  const dict = profile.about_you;
-  const field = Object.values(dict).find(
-    (f) => /country.*ethnicity/i.test(f.question.toLowerCase())
-      && !/secondary|preference/i.test(f.question.toLowerCase()),
-  );
+  const field = getField(profile, 'about', /country.*ethnicity/i);
   if (!field) return null;
-  const raw = field.values.length > 0
-    ? field.values[0]
-    : field.answer;
+  const raw = field.values.length > 0 ? field.values[0] : field.answer;
   if (raw && raw.trim()) return raw.trim();
   return null;
+}
+
+function getEthnicityPreference(profile: PersonWithDetails): string[] {
+  const field = getField(profile, 'looking', /country.*ethnicity|ethnicity.*preference/i);
+  if (!field) return [];
+  const raw = field.values.length > 0 ? field.values : [field.answer];
+  return normList(raw);
 }
 
 // ──────────────────────────────────────────────
@@ -689,6 +690,8 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   total++;
   const countryA = getCountryOfEthnicity(a);
   const countryB = getCountryOfEthnicity(b);
+  const ethPrefA = getEthnicityPreference(a);
+  const ethPrefB = getEthnicityPreference(b);
   const ethPass =
     countryA != null &&
     countryB != null &&
@@ -697,7 +700,7 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
   rows.push(makeRow(
     'ethnicity', 'Country of Ethnicity',
     countryA ? [countryA] : [], 'Country of Ethnicity', countryB ? [countryB] : [],
-    countryA ? [countryA] : [], countryB ? [countryB] : [],
+    ethPrefA, ethPrefB,
     ethPass, ethPass, false,
   ));
 
