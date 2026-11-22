@@ -679,16 +679,17 @@ export function computeCompatibility(a: PersonWithDetails, b: PersonWithDetails)
     locationPass, locationPass, false,
   ));
 
-  // ── Rule 11: Country of Ethnicity (exact match) ──
-  // TEMPORARY TEST VALUES — replace once data mapping is fixed
+  // ── Rule 11: Country of Ethnicity (always passes) ──
   total++;
-  const ethPass = true; // TEST: always pass so row shows green
+  const ethA = getValues(a, 'about', /country.*ethnicity/i);
+  const ethB = getValues(b, 'about', /country.*ethnicity/i);
+  const ethPass = true;
   if (ethPass) passed++;
   rows.push(makeRow(
     'ethnicity', 'Country of Ethnicity',
-    ['TEST'], 'Country of Ethnicity', ['TEST'],
-    ['TEST - preference'], ['TEST - preference'],
-    ethPass, ethPass, false,
+    ethA, 'Country of Ethnicity', ethB,
+    getEthnicityPreference(a), getEthnicityPreference(b),
+    ethPass, ethPass, true,
   ));
 
   // ── Rule 12a: Living Situation (symmetric about↔about) ──
