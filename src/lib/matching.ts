@@ -1,4 +1,5 @@
 import type { CompatibilityResult, CompatibilityRow, Match, PersonWithDetails, QuestionField } from './types';
+import { getCountryOfEthnicity } from './types';
 
 /**
  * Matrimonial Matchmaking Engine — Bidirectional Exact-Mapping Model
@@ -379,14 +380,6 @@ function locationsMatch(a: string, b: string): boolean {
 // ──────────────────────────────────────────────
 //  Rule 11: Ethnicity
 // ──────────────────────────────────────────────
-
-function getCountryOfEthnicity(profile: PersonWithDetails): string | null {
-  const field = getField(profile, 'about', /country.*ethnicity/i);
-  if (!field) return null;
-  const raw = field.values.length > 0 ? field.values[0] : field.answer;
-  if (raw && raw.trim()) return raw.trim();
-  return null;
-}
 
 function getEthnicityPreference(profile: PersonWithDetails): string[] {
   const field = getField(profile, 'looking', /country.*ethnicity|ethnicity.*preference/i);

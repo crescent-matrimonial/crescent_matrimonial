@@ -7,6 +7,7 @@ import { Modal } from '@/components/Modal';
 import { PhotoCarousel } from '@/components/PhotoCarousel';
 import { findPotentialMatches, countPotentialMatches, countPotentialMatchesAlreadyPaired, sharedHobbies, hasWorkedOut, computeCompatibility } from '@/lib/matching';
 import type { CompatibilityResult, PersonWithDetails, QuestionField } from '@/lib/types';
+import { getCountryOfEthnicity as getCountryOfEthnicityOrNull } from '@/lib/types';
 import { RuleRow, CloseMatchesList } from '@/components/ComparisonSearch';
 import type { CloseMatchEntry } from '@/components/ComparisonSearch';
 
@@ -31,13 +32,7 @@ function getActualAge(person: PersonWithDetails): number | null {
 }
 
 function getCountryOfEthnicity(person: PersonWithDetails): string {
-  const field = Object.values(person.about_you).find(
-    (f) => /country.*ethnicity/i.test(f.question.toLowerCase()) && !/secondary/i.test(f.question.toLowerCase()),
-  );
-  if (!field) return '—';
-  const raw = field.values.length > 0 ? field.values[0] : field.answer;
-  if (raw && raw.trim()) return raw.trim();
-  return '—';
+  return getCountryOfEthnicityOrNull(person) ?? '—';
 }
 
 function getStateOfResidence(person: PersonWithDetails): string | null {
