@@ -459,7 +459,7 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
     const scored: CloseMatchEntry[] = [];
     for (const c of candidates) {
       const r = computeCompatibility(selectedPerson, c);
-      if (r.score >= 75) {
+      if (r.score >= 80) {
         scored.push({ person: c, score: r.score, passed: r.passed, total: r.total });
       }
     }
@@ -1161,7 +1161,7 @@ export function MatchmakingEngine({ initial, onClearInitial }: { initial: Engine
                     >
                       <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                         <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                        Close Matches (75%+)
+                        Close Matches (80%+)
                       </span>
                       <span className="flex items-center gap-1 text-xs text-sky-400">
                         {showManualCloseMatches ? (
