@@ -8,13 +8,18 @@ import { Modal } from '@/components/Modal';
 import { countPotentialMatches, countPotentialMatchesAlreadyPaired, hasWorkedOut } from '@/lib/matching';
 import { HeartHandshake } from 'lucide-react';
 import type { Match, PersonWithDetails, QuestionField } from '@/lib/types';
-import { getCountryOfEthnicity } from '@/lib/types';
 
 type GenderTab = 'male' | 'female';
 
 function getStateOfResidence(person: PersonWithDetails): string | null {
   const dict = person.about_you;
   const field = Object.values(dict).find((f) => /state.*reside|state.*live/i.test(f.question.toLowerCase()));
+  if (field && field.answer.trim()) return field.answer.trim();
+  return null;
+}
+
+function getCountryOfEthnicity(person: PersonWithDetails): string | null {
+  const field = Object.values(person.about_you).find((f) => /country.*ethnicity/i.test(f.question));
   if (field && field.answer.trim()) return field.answer.trim();
   return null;
 }

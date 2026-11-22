@@ -5,13 +5,19 @@ import { Avatar } from './Avatar';
 import { StatusBadge } from './StatusBadge';
 import { PhotoCarousel } from './PhotoCarousel';
 import type { Match, PersonWithDetails, QuestionField } from '@/lib/types';
-import { getCountryOfEthnicity } from '@/lib/types';
 import { useData } from '@/lib/data';
 import { ComparisonSearch } from './ComparisonSearch';
 
 function getStateOfResidence(person: PersonWithDetails): string | null {
   const dict = person.about_you;
   const field = Object.values(dict).find((f) => /state.*reside|state.*live/i.test(f.question.toLowerCase()));
+  if (field && field.answer.trim()) return field.answer.trim();
+  return null;
+}
+
+function getCountryOfEthnicity(person: PersonWithDetails): string | null {
+  const dict = person.about_you;
+  const field = Object.values(dict).find((f) => /country.*ethnicity/i.test(f.question.toLowerCase()));
   if (field && field.answer.trim()) return field.answer.trim();
   return null;
 }
