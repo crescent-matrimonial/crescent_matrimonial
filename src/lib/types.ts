@@ -24,6 +24,30 @@ export function fromDbGender(g: string | null): Gender | null {
 
 export type Outcome = 'pending' | 'worked_out' | 'failed' | 'manually_removed';
 
+/**
+ * Single source of truth for reading a candidate's country of ethnicity.
+ * The form has "Country of Ethnicity" plus "Secondary Country of Ethnicity"
+ * (and a "Preference" variant in the partner section), so the rule is: match
+ * questions naming both "country" and "ethnicity", skip "secondary"/
+ * "preference" for the primary pick, fall back to the secondary country, and
+ * read from `values` (multi-select) before `answer`.
+ */
+export function getCountryOfEthnicity(person: PersonWithDetails): string | null {
+  const fields = Object.values(person.about_you);
+  const isCountryField = (f: QuestionField) =>
+    /country/i.test(f.question) && /ethnicity/i.test(f.question);
+  const primary = fields.find(
+    (f) => isCountryField(f) && !/secondary|preference/i.test(f.question),
+  );
+  const secondary = fields.find((f) => isCountryField(f) && /secondary/i.test(f.question));
+  for (const field of [primary, secondary]) {
+    if (!field) continue;
+    const raw = field.values.length > 0 ? field.values[0] : field.answer;
+    if (raw && raw.trim()) return raw.trim();
+  }
+  return null;
+}
+
 /** A single mapped question stored on a candidate. */
 export interface QuestionField {
   key: string;

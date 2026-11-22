@@ -4,19 +4,10 @@ import { Avatar } from './Avatar';
 import { computeCompatibility } from '@/lib/matching';
 import { useData } from '@/lib/data';
 import type { PersonWithDetails, CompatibilityRow } from '@/lib/types';
-
-function getCountryOfEthnicity(person: PersonWithDetails): string | null {
-  const field = Object.values(person.about_you).find(
-    (f) => /country.*ethnicity/i.test(f.question.toLowerCase()) && !/secondary/i.test(f.question.toLowerCase()),
-  );
-  if (!field) return null;
-  const raw = field.values.length > 0 ? field.values[0] : field.answer;
-  if (raw && raw.trim()) return raw.trim();
-  return null;
-}
+import { getCountryOfEthnicity } from '@/lib/types';
 
 function getStateOfResidence(person: PersonWithDetails): string | null {
-  const field = Object.values(person.about_you).find((f) => /state.*reside|state.*live/i.test(f.question));
+  const field = Object.values(person.about_you).find((f) => /state.*reside|state.*live/i.test(f.question.toLowerCase()));
   if (field && field.answer.trim()) return field.answer.trim();
   return null;
 }
@@ -192,7 +183,7 @@ function CloseMatchesList({
   if (matches.length === 0) {
     return (
       <p className="py-4 text-center text-xs text-slate-500">
-        No close matches found above 80% compatibility.
+        No close matches found above 75% compatibility.
       </p>
     );
   }
@@ -277,7 +268,7 @@ export function ComparisonSearch({ person }: ComparisonSearchProps) {
     const scored: CloseMatchEntry[] = [];
     for (const c of candidates) {
       const r = computeCompatibility(person, c);
-      if (r.score >= 80) {
+      if (r.score >= 75) {
         scored.push({ person: c, score: r.score, passed: r.passed, total: r.total });
       }
     }
@@ -351,7 +342,7 @@ export function ComparisonSearch({ person }: ComparisonSearchProps) {
               >
                 <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                   <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                  Close Matches (80%+)
+                  Close Matches (75%+)
                 </span>
                 <span className="flex items-center gap-1 text-xs text-sky-400">
                   {showCloseMatches ? (
