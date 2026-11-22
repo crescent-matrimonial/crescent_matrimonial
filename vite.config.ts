@@ -13,4 +13,10 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      maxParallelFileOps: 2,
+    },
+  },
 });
